@@ -4,7 +4,9 @@ def main():
     """ None -> None
     Begins decision making and decides which path to follow.
     """
-    print("Is this a transaction or would you like to view inventory/transaction history?")
+    print("Is this a transaction or would you "
+          "like to view inventory/transaction history? "
+          "(enter 'cancel' to exit at any time)")
     greet_answer = input()
     # begin decision making here
     if greet_answer == 'transaction':
@@ -16,30 +18,32 @@ def main():
         return 'Have a nice day!'
     else:
         print("I'm sorry, I didn't catch that.")
-        main()
+        print(main())
 
 
 def choose_trans():
     """ (str) -> None
     Handles transaction choice.
     """
-    choice = input(
-        "What kind of transaction will this be? (rental, purchase, return, or replace) ")
+    choice = input("What kind of transaction will this be? "
+                   "(rental, purchase, return, or replace) ").strip().lower()
     if choice == 'rental':
         item = input("What item is in question? ").strip().lower().capitalize()
-        rent(item)
+        print(rent(item))
     elif choice == 'purchase':
-        item = input("What item is in question? ")
-        purchase(item)
+        item = input("What item is in question? ").strip().lower().capitalize()
+        print(purchase(item))
     elif choice == 'return':
-        item_id = input("Please input the ID of the returning item: ")
-        return_item(item_id)
+        item_id = input("Please input the ID of the returning item: ").strip()
+        print(return_item(item_id))
     elif choice == 'replace':
-        item_id = input("Please input the ID of the item being replaced: ")
-        replace_item(item_id)
+        item_id = input("Please input the ID of the item being replaced: ").strip()
+        print(replace_item(item_id))
+    elif choice == 'cancel':
+        return 'Have a nice day!'
     else:
         print("I'm sorry, I didn't quite catch that.")
-        main()
+        print(main())
 
 
 def rent(item):
@@ -56,15 +60,20 @@ def rent(item):
     Return By: 02/08/17 13:53
     Total Due: $224.7
     """
+    # needs to build up a string that eventually gets written to trans history
+    # needs to remove said item id from inventory at end of function
+    # maybe using a separate function
+    # since itll need to be done in purchase and replace as well
+    # needs to calculate total owed amount and return it
     if check_inventory(item):
-        time_choice = input(
-            '''
-            Please choose the length of time to rent a {0}.
-            (5hour, 1day, 1week, or 1month) ''').format(item)
+        time_choice = input(('Please choose the length of time to rent a '+item+'. '
+                             '(5hour, 1day, 1week, or 1month) '))
         return (item, time_choice)
+    elif item == 'cancel':
+        return 'Have a nice day!'
     else:
         print("I'm sorry, that item is currently unavailable. Please check again later.")
-        main()
+        print(main())
 
 
 def purchase(item):
@@ -74,6 +83,8 @@ def purchase(item):
     if check_inventory(item):
         # continue code here
         return item
+    elif item == 'cancel':
+        return 'Have a nice day!'
     else:
         print("I'm sorry, that item is currently unavailable. Please check again later.")
         main()
@@ -125,4 +136,4 @@ def view_trans_or_inventory():
 
 
 if __name__ == '__main__':
-    main()
+    print(main())
