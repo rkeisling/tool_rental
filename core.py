@@ -1,13 +1,49 @@
+
+
 def main():
     """ None -> None
-    Main function that runs all of the smaller functions.
+    Begins decision making and decides which path to follow.
     """
-    begin_decisions()
+    print("Is this a transaction or would you like to view inventory/transaction history?")
+    greet_answer = input()
+    # begin decision making here
+    if greet_answer == 'transaction':
+        # start transaction stuff
+        choose_trans()
+    elif greet_answer == 'view inventory/transaction history':
+        view_trans_or_inventory()
+    elif greet_answer == 'cancel':
+        return 'Have a nice day!'
+    else:
+        print("I'm sorry, I didn't catch that.")
+        main()
 
 
+def choose_trans():
+    """ (str) -> None
+    Handles transaction choice.
+    """
+    choice = input(
+        "What kind of transaction will this be? (rental, purchase, return, or replace) ")
+    if choice == 'rental':
+        item = input("What item is in question? ").strip().lower().capitalize()
+        rent(item)
+    elif choice == 'purchase':
+        item = input("What item is in question? ")
+        purchase(item)
+    elif choice == 'return':
+        item_id = input("Please input the ID of the returning item: ")
+        return_item(item_id)
+    elif choice == 'replace':
+        item_id = input("Please input the ID of the item being replaced: ")
+        replace_item(item_id)
+    else:
+        print("I'm sorry, I didn't quite catch that.")
+        main()
 
-def rent(item, time_choice):
-    """ (str, str) -> str
+
+def rent(item):
+    """ (str) -> str
     Returns the overall total for renting <item> for <time_choice> amount of time,
     along with the date and time the tool should be returned by.
 
@@ -20,77 +56,41 @@ def rent(item, time_choice):
     Return By: 02/08/17 13:53
     Total Due: $224.7
     """
+    if check_inventory(item):
+        time_choice = input(
+            '''
+            Please choose the length of time to rent a {0}.
+            (5hour, 1day, 1week, or 1month) ''').format(item)
+        return (item, time_choice)
+    else:
+        print("I'm sorry, that item is currently unavailable. Please check again later.")
+        main()
+
 
 def purchase(item):
     """ (str) -> str
     Returns the total when given an item.
     """
+    if check_inventory(item):
+        # continue code here
+        return item
+    else:
+        print("I'm sorry, that item is currently unavailable. Please check again later.")
+        main()
 
 
 def return_item(item):
     """ (str) -> str
     Returns the total when given a item.
     """
+    return item
 
 
 def replace_item(item):
     """ (str) -> str
     Returns the total when given a item.
     """
-
-
-def begin_decisions():
-    """ None -> None
-    Begins decision making and decides which path to follow.
-    """
-    print("Is this a transaction or would you like to view inventory/transaction history?")
-    greet_answer = input()
-    # begin decision making here
-    if greet_answer == 'transaction':
-        # start transaction stuff
-        which_trans = input(
-            "What kind of transaction will this be? (rental, purchase, return, or replace) ")
-        if which_trans == 'rental':
-            item = input("What item is in question? ")
-            if check_inventory(item):
-                time_choice = input(
-                    '''
-                    Please choose the length of time to rent a {0}.
-                    (5hour, 1day, 1week, or 1month) ''')
-                rent(item, time_choice)
-            else:
-                print("I'm sorry, that item is currently unavailable. Please check again later.")
-                begin_decisions()
-        elif which_trans == 'purchase':
-            item = input("What item is in question? ")
-            if check_inventory(item):
-                purchase(item)
-            else:
-                print("I'm sorry, that item is currently unavailable. Please check again later.")
-                begin_decisions()
-        elif which_trans == 'return':
-            item_id = input("Please input the ID of the returning item: ")
-            return_item(item_id)
-        elif which_trans == 'replace':
-            item_id = input("Please input the ID of the item being replaced: ")
-            replace_item(item_id)
-        else:
-            print("I'm sorry, I didn't quite catch that.")
-        # add something here to repeat the question
-    elif greet_answer == 'view inventory/transaction history':
-        option_answer = input("Would you like to view current inventory or transaction history? ")
-        if option_answer == 'inventory':
-            with open('inventory.txt', 'r') as fin:
-                print(fin.read())
-        elif option_answer == 'transaction history':
-            with open('transaction_history.txt') as fin:
-                print(fin.read())
-        else:
-            print("I'm sorry, I didn't quite get that.")
-            # add something here to repeat the question
-    else:
-        print("I'm sorry, I didn't catch that.")
-        begin_decisions()
+    return item
 
 
 def check_inventory(item):
@@ -106,6 +106,23 @@ def check_inventory(item):
                 return False
             else:
                 return True
+
+
+def view_trans_or_inventory():
+    """ None -> None
+    Prints inventory or transaction history to the terminal.
+    """
+    option_answer = input("Would you like to view current inventory or transaction history? ")
+    if option_answer == 'inventory':
+        with open('inventory.txt', 'r') as fin:
+            print(fin.read())
+    elif option_answer == 'transaction history':
+        with open('transaction_history.txt') as fin:
+            print(fin.read())
+    else:
+        print("I'm sorry, I didn't quite get that.")
+        view_trans_or_inventory()
+
 
 if __name__ == '__main__':
     main()
