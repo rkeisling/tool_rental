@@ -1,0 +1,6 @@
+Auger - $250 - 2 - [AUG1, AUG2]
+Generator - $1500 - 3 - [GEN1, GEN2, GEN3]
+Nailgun - $300 - 5 - [NAI1, NAI2, NAI3, NAI4, NAI5]
+Air Compressor - $500 - 3 - [AIR1, AIR2, AIR3]
+Tile Saw - $350 - 1 - [TIL1]
+Pressure Washer - $600 - 2 - [PRE1, PRE2]
