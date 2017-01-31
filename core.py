@@ -1,3 +1,4 @@
+import re
 
 
 def main():
@@ -61,9 +62,7 @@ def rent(item):
     Total Due: $224.7
     """
     # needs to build up a string that eventually gets written to trans history
-    # needs to remove said item id from inventory at end of function
-    # maybe using a separate function
-    # since itll need to be done in purchase and replace as well
+    # needs to remove said item id from inventory using update inventory
     # needs to calculate total owed amount and return it
     if check_inventory(item):
         time_choice = input(('Please choose the length of time to rent a '+item+'. '
@@ -80,6 +79,11 @@ def purchase(item):
     """ (str) -> str
     Returns the total when given an item.
     """
+    # needs to use check_inventory, then grab an id from the available ones
+    # in inventory
+    # needs to build up a string that eventually gets written to trans history
+    # needs to remove said item id from inventory using update_inventory
+    # needs to calculate total owed amount and return it
     if check_inventory(item):
         # continue code here
         return item
@@ -90,18 +94,27 @@ def purchase(item):
         main()
 
 
-def return_item(item):
+def return_item(item_id):
     """ (str) -> str
-    Returns the total when given a item.
+    Returns the total when given a item_id. Also updates inventory and trans history.
     """
-    return item
+    # needs to check and see if the item is late or not
+    # if late, charge 20% of item value for every hour late
+    # if more than item value, just charge item value minus 10% for deposit
+    # needs to see if item is damaged
+    # if damaged, charge nothing
+    # if not damaged, refund deposit (10% of replacement value)
+    # use update_inventory to put item_id back into appropriate list
+    return item_id
 
 
-def replace_item(item):
+def replace_item(item_id):
     """ (str) -> str
-    Returns the total when given a item.
+    Returns the total when given a item_id. Also updates inventory and trans history.
     """
-    return item
+    # works same way as purchase, but with specific id instead of generic item
+    # replacement price is replacement price in inventory but minus 10% for deposit
+    return item_id
 
 
 def check_inventory(item):
@@ -133,6 +146,40 @@ def view_trans_or_inventory():
     else:
         print("I'm sorry, I didn't quite get that.")
         view_trans_or_inventory()
+
+
+def write_trans_line(list_of_info):
+    """ (list) -> None
+    Creates formatted line from a given list of infomation needed and
+    writes that line to trans_history.txt.
+    """
+    # format list_of_info into some formatted line, see plan
+    # write formatted line to trans_history
+    return list_of_info
+
+
+def update_inventory(item_id, remove_or_add):
+    """ (str) -> None
+    Updates inventory.txt when given an item_id, removes or adds depending on
+    remove_or_add.
+    """
+    # decide to remove or add
+    # needs to access inventory.txt
+    # read it
+    # find structure with item_id in it
+    # take out or put in (depending on step 1)
+    id_codes = {'nai': 'nailgun', 'aug': 'auger', 'gen': 'generator',
+                'air': 'air compressor', 'til': 'tile saw', 'pre': 'pressure washer'}
+    needed_list = []
+    item = id_codes[item_id[:3]]
+    with open('inventory.txt', 'r') as fin:
+        inv = fin.read()
+    formatted_inv = [each.strip().split(' - ') for each in inv]
+    for each in formatted_inv:
+        if item == each[0]:
+            needed_list = each[3]
+    needed_list.append(item_id)
+    return (item_id, remove_or_add)
 
 
 if __name__ == '__main__':
