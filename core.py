@@ -1,4 +1,4 @@
-import re
+import json
 
 
 def main():
@@ -136,6 +136,9 @@ def view_trans_or_inventory():
     """ None -> None
     Prints inventory or transaction history to the terminal.
     """
+    # need to change format of trans_history to json
+    # cant just read json file, must format from whatever structure, probably
+    # a list or dictionary
     option_answer = input("Would you like to view current inventory or transaction history? ")
     if option_answer == 'inventory':
         with open('inventory.txt', 'r') as fin:
@@ -153,12 +156,12 @@ def write_trans_line(list_of_info):
     Creates formatted line from a given list of infomation needed and
     writes that line to trans_history.txt.
     """
-    # format list_of_info into some formatted line, see plan
-    # write formatted line to trans_history
+    # do not use plan structure of trans_history
+    # trans_history is now json for ease of access
     return list_of_info
 
 
-def update_inventory(item_id, remove_or_add):
+def update_inventory(item_id):
     """ (str) -> None
     Updates inventory.txt when given an item_id, removes or adds depending on
     remove_or_add.
@@ -168,6 +171,14 @@ def update_inventory(item_id, remove_or_add):
     # read it
     # find structure with item_id in it
     # take out or put in (depending on step 1)
+    # restructure needed for .json transition
+    # heres the inventory
+    # Auger - $250 - 2 - [AUG1, AUG2]
+    # Generator - $1500 - 3 - [GEN1, GEN2, GEN3]
+    # Nailgun - $300 - 5 - [NAI1, NAI2, NAI3, NAI4, NAI5]
+    # Air Compressor - $500 - 3 - [AIR1, AIR2, AIR3]
+    # Tile Saw - $350 - 1 - [TIL1]
+    # Pressure Washer - $600 - 2 - [PRE1, PRE2]
     id_codes = {'nai': 'nailgun', 'aug': 'auger', 'gen': 'generator',
                 'air': 'air compressor', 'til': 'tile saw', 'pre': 'pressure washer'}
     needed_list = []
@@ -178,9 +189,15 @@ def update_inventory(item_id, remove_or_add):
     for each in formatted_inv:
         if item == each[0]:
             needed_list = each[3]
-    needed_list.append(item_id)
-    return (item_id, remove_or_add)
-
+    if item_id == 0:
+        # do remove item
+        item_id = needed_list.pop()
+        with open("inventory.txt", 'w') as fin:
+            inv.replace(needed_list)
+        return item_id
+    else:
+        # do add item
+        needed_list.append(item_id)
 
 if __name__ == '__main__':
     print(main())
