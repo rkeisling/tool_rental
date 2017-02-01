@@ -162,42 +162,58 @@ def write_trans_line(list_of_info):
 
 
 def update_inventory(item_id):
-    """ (str) -> None
-    Updates inventory.txt when given an item_id, removes or adds depending on
-    remove_or_add.
+    """ (str) -> None or str
+    Updates inventory.json. If given an item id, it will add the item back to the
+    inventory. If given the integer 0, it will return an item id and remove it
+    from the inventory list as well as update the number in inventory.
     """
-    # decide to remove or add
-    # needs to access inventory.txt
-    # read it
-    # find structure with item_id in it
-    # take out or put in (depending on step 1)
-    # restructure needed for .json transition
-    # heres the inventory
-    # Auger - $250 - 2 - [AUG1, AUG2]
-    # Generator - $1500 - 3 - [GEN1, GEN2, GEN3]
-    # Nailgun - $300 - 5 - [NAI1, NAI2, NAI3, NAI4, NAI5]
-    # Air Compressor - $500 - 3 - [AIR1, AIR2, AIR3]
-    # Tile Saw - $350 - 1 - [TIL1]
-    # Pressure Washer - $600 - 2 - [PRE1, PRE2]
     id_codes = {'nai': 'nailgun', 'aug': 'auger', 'gen': 'generator',
                 'air': 'air compressor', 'til': 'tile saw', 'pre': 'pressure washer'}
-    needed_list = []
     item = id_codes[item_id[:3]]
-    with open('inventory.txt', 'r') as fin:
-        inv = fin.read()
-    formatted_inv = [each.strip().split(' - ') for each in inv]
-    for each in formatted_inv:
-        if item == each[0]:
-            needed_list = each[3]
+    with open('inventory.json', 'r') as fin:
+        inv_dict = json.load(fin)
+    needed_list = inv_dict[item]['ids']
     if item_id == 0:
-        # do remove item
+        inv_dict[item]['num'] -= 1
         item_id = needed_list.pop()
-        with open("inventory.txt", 'w') as fin:
-            inv.replace(needed_list)
+        inv_dict[item]['ids'] = needed_list
+        with open("inventory.json", 'w') as fin:
+            json.dump(inv_dict, fin)
         return item_id
     else:
-        # do add item
+        inv_dict[item]['num'] += 1
         needed_list.append(item_id)
+        inv_dict[item]['ids'] = needed_list
+        with open("inventory.json", 'w') as fin:
+            json.dump(inv_dict, fin)
+
+
+def initialize_inventory():
+    """ None -> None
+    Initializes inventory.json if it is empty.
+    """
+    tools = {'auger': {'price': 250,
+                       'num': 2,
+                       'ids': ['AUG1', 'AUG2']},
+             'generator': {'price': 1500,
+                           'num': 3,
+                           'ids': ['GEN1', 'GEN2', 'GEN3']},
+             'nailgun': {'price': 300,
+                         'num': 5,
+                         'ids': ['NAI1', 'NAI2', 'NAI3', 'NAI4', 'NAI5']},
+             'aircompressor': {'price': 500,
+                               'num': 3,
+                               'ids': ['AIR1', 'AIR2', 'AIR3']},
+             'tilesaw': {'price': 350,
+                         'num': 1,
+                         'ids': ['TIL1']},
+             'pressurewasher': {'price': 600,
+                                'num': 2,
+                                'ids': ['PRE1', 'PRE2']}
+            }
+    with open('inventory.json', 'w') as fin:
+        json.dump(tools, fin)
+
 
 if __name__ == '__main__':
     print(main())
