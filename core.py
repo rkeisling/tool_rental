@@ -1,4 +1,5 @@
 import json
+from os import stat
 
 
 def main():
@@ -119,9 +120,10 @@ def replace_item(item_id):
 
 def check_inventory(item):
     """ (str) -> bool
-    Returns T/F whether or not an item is in stock by accessing inventory.txt.
+    Returns T/F whether or not an item is in stock by accessing inventory.json.
     """
-    with open('inventory.txt') as file:
+    # needs to be reformatted for json files
+    with open('inventory.json') as file:
         inv = file.readlines()
     formatted_inv = [each.strip().split(' - ') for each in inv]
     for each in formatted_inv:
@@ -141,24 +143,35 @@ def view_trans_or_inventory():
     # a list or dictionary
     option_answer = input("Would you like to view current inventory or transaction history? ")
     if option_answer == 'inventory':
-        with open('inventory.txt', 'r') as fin:
+        with open('inventory.json', 'r') as fin:
             print(fin.read())
     elif option_answer == 'transaction history':
-        with open('transaction_history.txt') as fin:
+        with open('trans_history.json') as fin:
             print(fin.read())
     else:
         print("I'm sorry, I didn't quite get that.")
         view_trans_or_inventory()
 
 
-def write_trans_line(list_of_info):
+def update_trans_history(list_of_info):
     """ (list) -> None
-    Creates formatted line from a given list of infomation needed and
-    writes that line to trans_history.txt.
+    Updates the list of dictionaries of transaction history objects in trans_history.json.
     """
-    # do not use plan structure of trans_history
-    # trans_history is now json for ease of access
-    return list_of_info
+    with open('trans_history.json', 'r') as fin:
+        if stat("trans_history.json").st_size == 0:
+            list_of_dict = []
+        else:
+            list_of_dict = json.load(fin)
+    with open('trans_history.json', 'w') as fin:
+        list_of_dict.append({'item_id': list_of_info[0],
+                             'trans_type': list_of_info[1],
+                             'return_info': {'damaged': list_of_info[2],
+                                             'past_due': list_of_info[3]},
+                             'time_choice': list_of_info[4],
+                             'amount_charged': list_of_info[5],
+                             'date_of_trans': list_of_info[6],
+                             'date_due': list_of_info[7]})
+        json.dump(list_of_dict, fin)
 
 
 def update_inventory(item_id):

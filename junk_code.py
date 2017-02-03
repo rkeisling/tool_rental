@@ -78,6 +78,22 @@ def late_item(item_id):
     Returns if the given item is late or not by accessing transaction_history.txt.
     """
 
+def make_dict_of_trans_info(list_info):
+    """
+    Test code for .json loading of dict from list of info.
+    Example list:
+    ['GEN3', 'rental', 'n/a', 'n/a', '1day', '642', '01/25/17 15:42', '01/26/17 15:42']
+    """
+    info_dict = {'item_id': list_info[0],
+                 'trans_type': list_info[1],
+                 'return_info': {'damaged': list_info[2],
+                                 'past_due': list_info[3]},
+                 'time_choice': list_info[4],
+                 'amount_charged': list_info[5],
+                 'date_of_trans': list_info[6],
+                 'date_due': list_info[7]}
+
+
 if __name__ == "__main__":
     item = input("What do you want?")
     how_long = input("How long?")
