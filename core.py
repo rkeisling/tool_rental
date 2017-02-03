@@ -6,17 +6,17 @@ def main():
     """ None -> None
     Begins decision making and decides which path to follow.
     """
-    print("Is this a transaction or would you "
-          "like to view inventory/transaction history? "
-          "(enter 'cancel' to exit at any time)")
+    print("Enter the number 1 for a transaction; "
+          "to view inventory/transaction history, enter the number 2. "
+          "(enter the number 9 to exit at any time)")
     greet_answer = input()
     # begin decision making here
-    if greet_answer == 'transaction':
+    if greet_answer == '1':
         # start transaction stuff
         choose_trans()
-    elif greet_answer == 'view inventory/transaction history':
-        view_trans_or_inventory()
-    elif greet_answer == 'cancel':
+    elif greet_answer == '2':
+        return view_trans_or_inventory()
+    elif greet_answer == '9':
         return 'Have a nice day!'
     else:
         print("I'm sorry, I didn't catch that.")
@@ -27,21 +27,21 @@ def choose_trans():
     """ (str) -> None
     Handles transaction choice.
     """
-    choice = input("What kind of transaction will this be? "
-                   "(rental, purchase, return, or replace) ").strip().lower()
-    if choice == 'rental':
+    choice = input("Please enter the number according to the transaction. "
+                   "(rental - 1, purchase - 2, return - 3, or replace - 4) ").strip().lower()
+    if choice == '1':
         item = input("What item is in question? ").strip().lower().capitalize()
         print(rent(item))
-    elif choice == 'purchase':
+    elif choice == '2':
         item = input("What item is in question? ").strip().lower().capitalize()
         print(purchase(item))
-    elif choice == 'return':
+    elif choice == '3':
         item_id = input("Please input the ID of the returning item: ").strip()
         print(return_item(item_id))
-    elif choice == 'replace':
+    elif choice == '4':
         item_id = input("Please input the ID of the item being replaced: ").strip()
         print(replace_item(item_id))
-    elif choice == 'cancel':
+    elif choice == '9':
         return 'Have a nice day!'
     else:
         print("I'm sorry, I didn't quite catch that.")
@@ -69,7 +69,7 @@ def rent(item):
         time_choice = input(('Please choose the length of time to rent a '+item+'. '
                              '(5hour, 1day, 1week, or 1month) '))
         return (item, time_choice)
-    elif item == 'cancel':
+    elif item == '9':
         return 'Have a nice day!'
     else:
         print("I'm sorry, that item is currently unavailable. Please check again later.")
@@ -88,7 +88,7 @@ def purchase(item):
     if check_inventory(item):
         # continue code here
         return item
-    elif item == 'cancel':
+    elif item == '9':
         return 'Have a nice day!'
     else:
         print("I'm sorry, that item is currently unavailable. Please check again later.")
@@ -138,16 +138,31 @@ def view_trans_or_inventory():
     """ None -> None
     Prints inventory or transaction history to the terminal.
     """
-    # need to change format of trans_history to json
-    # cant just read json file, must format from whatever structure, probably
-    # a list or dictionary
-    option_answer = input("Would you like to view current inventory or transaction history? ")
-    if option_answer == 'inventory':
+    option_answer = input("Please enter 1 to view inventory and 2 to view transaction history. ")
+    if option_answer == '1':
         with open('inventory.json', 'r') as fin:
-            print(fin.read())
-    elif option_answer == 'transaction history':
+            data = json.load(fin)
+            data_string = ""
+            for key, value in data.items():
+                item = "Item - {0}, Price - ${1}, Number - {2}, IDs - {3}\n".format(
+                    key.replace('_', ' ').capitalize(), value['price'], value['num'], value['ids'])
+                data_string += item
+            return data_string
+    elif option_answer == '2':
         with open('trans_history.json') as fin:
-            print(fin.read())
+            data = json.load(fin)
+            data_string = ""
+            for each in data:
+                trans = ("Item ID - "+each['item_id']+
+                         ", Transaction - "+each['trans_type']+
+                         ", Amount Charged - $"+str(each['amount_charged'])+", "
+                         "Time Choice - "+each['time_choice']+
+                         ", Date Of - "+each['date_of_trans']+
+                         ", Due By - "+each['date_due']+", "
+                         "Damaged on Return - "+each['return_info']['damaged']+
+                         ", Past Due - "+each['return_info']['past_due']+"\n")
+                data_string += trans
+            return data_string
     else:
         print("I'm sorry, I didn't quite get that.")
         view_trans_or_inventory()
@@ -214,15 +229,15 @@ def initialize_inventory():
              'nailgun': {'price': 300,
                          'num': 5,
                          'ids': ['NAI1', 'NAI2', 'NAI3', 'NAI4', 'NAI5']},
-             'aircompressor': {'price': 500,
-                               'num': 3,
-                               'ids': ['AIR1', 'AIR2', 'AIR3']},
+             'air_compressor': {'price': 500,
+                                'num': 3,
+                                'ids': ['AIR1', 'AIR2', 'AIR3']},
              'tilesaw': {'price': 350,
                          'num': 1,
                          'ids': ['TIL1']},
-             'pressurewasher': {'price': 600,
-                                'num': 2,
-                                'ids': ['PRE1', 'PRE2']}
+             'pressure_washer': {'price': 600,
+                                 'num': 2,
+                                 'ids': ['PRE1', 'PRE2']}
             }
     with open('inventory.json', 'w') as fin:
         json.dump(tools, fin)
