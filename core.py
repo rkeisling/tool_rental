@@ -1,5 +1,6 @@
 import json
 from os import stat
+from datetime import datetime
 
 
 def main():
@@ -13,14 +14,14 @@ def main():
     # begin decision making here
     if greet_answer == '1':
         # start transaction stuff
-        choose_trans()
+        return choose_trans()
     elif greet_answer == '2':
         return view_trans_or_inventory()
     elif greet_answer == '9':
         return 'Have a nice day!'
     else:
         print("I'm sorry, I didn't catch that.")
-        print(main())
+        return main()
 
 
 def choose_trans():
@@ -30,22 +31,22 @@ def choose_trans():
     choice = input("Please enter the number according to the transaction. "
                    "(rental - 1, purchase - 2, return - 3, or replace - 4) ").strip().lower()
     if choice == '1':
-        item = input("What item is in question? ").strip().lower().capitalize()
-        print(rent(item))
+        item = input("What item is in question? ").strip().lower()
+        return rent(item)
     elif choice == '2':
-        item = input("What item is in question? ").strip().lower().capitalize()
-        print(purchase(item))
+        item = input("What item is in question? ").strip().lower()
+        return purchase(item)
     elif choice == '3':
         item_id = input("Please input the ID of the returning item: ").strip()
-        print(return_item(item_id))
+        return return_item(item_id)
     elif choice == '4':
         item_id = input("Please input the ID of the item being replaced: ").strip()
-        print(replace_item(item_id))
+        return replace_item(item_id)
     elif choice == '9':
         return 'Have a nice day!'
     else:
         print("I'm sorry, I didn't quite catch that.")
-        print(main())
+        return main()
 
 
 def rent(item):
@@ -80,14 +81,20 @@ def purchase(item):
     """ (str) -> str
     Returns the total when given an item.
     """
-    # needs to use check_inventory, then grab an id from the available ones
-    # in inventory
-    # needs to build up a string that eventually gets written to trans history
-    # needs to remove said item id from inventory using update_inventory
-    # needs to calculate total owed amount and return it
+    list_for_history = []
     if check_inventory(item):
-        # continue code here
-        return item
+        current_id = update_inventory_remove(item)
+        price = get_price(item)*1.07
+        current_date = datetime.today()
+        list_for_history.extend([current_id,
+                                 'purchase',
+                                 'N/A', 'N/A',
+                                 'N/A', price,
+                                 current_date,
+                                 'N/A'])
+        update_trans_history(list_for_history)
+        pretty_str = 'Total: {0}; Item ID: {1}'.format(price, current_id)
+        return pretty_str
     elif item == '9':
         return 'Have a nice day!'
     else:
@@ -116,6 +123,15 @@ def replace_item(item_id):
     # works same way as purchase, but with specific id instead of generic item
     # replacement price is replacement price in inventory but minus 10% for deposit
     return item_id
+
+
+def get_price(item):
+    """ (str) -> int
+    Returns the replacement price from inventory when given an item.
+    """
+    with open('inventory.json') as fin:
+        inv = json.load(fin)
+    return int(inv[item]['price'])
 
 
 def check_inventory(item):
@@ -186,14 +202,12 @@ def update_trans_history(list_of_info):
                              'amount_charged': list_of_info[5],
                              'date_of_trans': list_of_info[6],
                              'date_due': list_of_info[7]})
-        json.dump(list_of_dict, fin)
+        json.dump(list_of_dict, fin, default=json_serial)
 
 
-def update_inventory(item_id):
-    """ (str) -> None or str
-    Updates inventory.json. If given an item id, it will add the item back to the
-    inventory. If given the integer 0, it will return an item id and remove it
-    from the inventory list as well as update the number in inventory.
+def update_inventory_add(item_id):
+    """ (str) -> None
+    Updates inventory.json when something is being added back to the inventory.
     """
     # dictionary used to match item id to the item for easier lookup
     id_codes = {'nai': 'nailgun', 'aug': 'auger', 'gen': 'generator',
@@ -202,23 +216,28 @@ def update_inventory(item_id):
     with open('inventory.json', 'r') as fin:
         inv_dict = json.load(fin)
     needed_list = inv_dict[item]['ids']
-    # this case is if an item is being removed from inventory
-    if item_id == 0:
-        inv_dict[item]['num'] -= 1
-        removed_item_id = needed_list.pop()
-        # updates the list in the dictionary with the new list
-        # (the list with the item_id removed)
-        inv_dict[item]['ids'] = needed_list
-        with open("inventory.json", 'w') as fin:
-            json.dump(inv_dict, fin)
-        return removed_item_id
-    # this is the case if an item is being returned to inventory
-    else:
-        inv_dict[item]['num'] += 1
-        needed_list.append(item_id)
-        inv_dict[item]['ids'] = needed_list
-        with open("inventory.json", 'w') as fin:
-            json.dump(inv_dict, fin)
+    inv_dict[item]['num'] += 1
+    needed_list.append(item_id)
+    inv_dict[item]['ids'] = needed_list
+    with open("inventory.json", 'w') as fin:
+        json.dump(inv_dict, fin)
+
+
+def update_inventory_remove(item):
+    """ (str) -> str
+    Updates inventory.json when something is being removed from the inventory.
+    """
+    with open('inventory.json', 'r') as fin:
+        inv_dict = json.load(fin)
+    needed_list = inv_dict[item]['ids']
+    inv_dict[item]['num'] -= 1
+    removed_item_id = needed_list.pop()
+    # updates the list in the dictionary with the new list
+    # (the list with the item_id removed)
+    inv_dict[item]['ids'] = needed_list
+    with open("inventory.json", 'w') as fin:
+        json.dump(inv_dict, fin)
+    return removed_item_id
 
 
 def initialize_inventory():
@@ -248,6 +267,17 @@ def initialize_inventory():
             }
     with open('inventory.json', 'w') as fin:
         json.dump(tools, fin)
+
+
+def json_serial(obj):
+    """ (obj) -> None
+    JSON serializer for objects not serializable by default json code
+    """
+    # this function fixes an issue with json serialization of datetime objects
+    if isinstance(obj, datetime):
+        serial = obj.isoformat()
+        return serial
+    raise TypeError("Type not serializable")
 
 
 if __name__ == '__main__':
