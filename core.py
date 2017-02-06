@@ -159,7 +159,7 @@ def get_price(item):
     """ (str) -> int
     Returns the replacement price from inventory when given an item.
     """
-    with open('inventory.p') as fin:
+    with open('inventory.p', 'rb') as fin:
         inv = pickle.load(fin)
     return int(inv[item]['price'])
 
@@ -168,7 +168,7 @@ def check_inventory(item):
     """ (str) -> bool
     Returns T/F whether or not an item is in stock by accessing inventory.p.
     """
-    with open('inventory.p') as fin:
+    with open('inventory.p', 'rb') as fin:
         inv = pickle.load(fin)
     if inv[item]['num'] == 0:
         return False
@@ -192,7 +192,7 @@ def view_trans_or_inventory():
     """
     option_answer = input("Please enter 1 to view inventory and 2 to view transaction history. ")
     if option_answer == '1':
-        with open('inventory.p', 'r') as fin:
+        with open('inventory.p', 'rb') as fin:
             data = pickle.load(fin)
             data_string = ""
             for key, value in data.items():
@@ -201,7 +201,7 @@ def view_trans_or_inventory():
                 data_string += item
             return data_string
     elif option_answer == '2':
-        with open('trans_history.p') as fin:
+        with open('trans_history.p', 'rb') as fin:
             data = pickle.load(fin)
             data_string = ""
             for each in data:
@@ -225,7 +225,7 @@ def update_trans_history(list_of_info):
     Updates the list of dictionaries of transaction history objects in trans_history.p.
     The transaction history is stored as a list of dictionaries.
     """
-    with open('trans_history.p', 'r') as fin:
+    with open('trans_history.p', 'rb') as fin:
         # if the file is empty, make an empty list
         if stat("trans_history.p").st_size == 0:
             list_of_dict = []
@@ -251,7 +251,7 @@ def update_inventory_add(item_id):
     """
     # dictionary used to match item id to the item for easier lookup
     item = item_id_to_item(item_id)
-    with open('inventory.p', 'r') as fin:
+    with open('inventory.p', 'rb') as fin:
         inv_dict = pickle.load(fin)
     needed_list = inv_dict[item]['ids']
     inv_dict[item]['num'] += 1
@@ -265,7 +265,7 @@ def update_inventory_remove(item):
     """ (str) -> str
     Updates inventory.p when something is being removed from the inventory.
     """
-    with open('inventory.p', 'r') as fin:
+    with open('inventory.p', 'rb') as fin:
         inv_dict = pickle.load(fin)
     needed_list = inv_dict[item]['ids']
     inv_dict[item]['num'] -= 1
