@@ -122,16 +122,12 @@ def check_inventory(item):
     """ (str) -> bool
     Returns T/F whether or not an item is in stock by accessing inventory.json.
     """
-    # needs to be reformatted for json files
-    with open('inventory.json') as file:
-        inv = file.readlines()
-    formatted_inv = [each.strip().split(' - ') for each in inv]
-    for each in formatted_inv:
-        if item == each[0]:
-            if len(each[3]) == 0:
-                return False
-            else:
-                return True
+    with open('inventory.json') as fin:
+        inv = json.load(fin)
+    if inv[item]['num'] == 0:
+        return False
+    else:
+        return True
 
 
 def view_trans_or_inventory():
@@ -144,7 +140,7 @@ def view_trans_or_inventory():
             data = json.load(fin)
             data_string = ""
             for key, value in data.items():
-                item = "Item - {0}, Price - ${1}, Number - {2}, IDs - {3}\n".format(
+                item = "Item - {0}; Price - ${1}; Number - {2}; IDs - {3}\n".format(
                     key.replace('_', ' ').capitalize(), value['price'], value['num'], value['ids'])
                 data_string += item
             return data_string
@@ -154,13 +150,13 @@ def view_trans_or_inventory():
             data_string = ""
             for each in data:
                 trans = ("Item ID - "+each['item_id']+
-                         ", Transaction - "+each['trans_type']+
-                         ", Amount Charged - $"+str(each['amount_charged'])+", "
+                         "; Transaction - "+each['trans_type']+
+                         "; Amount Charged - $"+str(each['amount_charged'])+"; "
                          "Time Choice - "+each['time_choice']+
-                         ", Date Of - "+each['date_of_trans']+
-                         ", Due By - "+each['date_due']+", "
+                         "; Date Of - "+each['date_of_trans']+
+                         "; Due By - "+each['date_due']+"; "
                          "Damaged on Return - "+each['return_info']['damaged']+
-                         ", Past Due - "+each['return_info']['past_due']+"\n")
+                         "; Past Due - "+each['return_info']['past_due']+"\n")
                 data_string += trans
             return data_string
     else:
@@ -171,13 +167,17 @@ def view_trans_or_inventory():
 def update_trans_history(list_of_info):
     """ (list) -> None
     Updates the list of dictionaries of transaction history objects in trans_history.json.
+    The transaction history is stored as a list of dictionaries.
     """
     with open('trans_history.json', 'r') as fin:
+        # if the file is empty, make an empty list
         if stat("trans_history.json").st_size == 0:
             list_of_dict = []
+        # if not, load up the current list
         else:
             list_of_dict = json.load(fin)
     with open('trans_history.json', 'w') as fin:
+        # converts the list_of_info to a dictionary and appends it
         list_of_dict.append({'item_id': list_of_info[0],
                              'trans_type': list_of_info[1],
                              'return_info': {'damaged': list_of_info[2],
@@ -195,19 +195,24 @@ def update_inventory(item_id):
     inventory. If given the integer 0, it will return an item id and remove it
     from the inventory list as well as update the number in inventory.
     """
+    # dictionary used to match item id to the item for easier lookup
     id_codes = {'nai': 'nailgun', 'aug': 'auger', 'gen': 'generator',
                 'air': 'air compressor', 'til': 'tile saw', 'pre': 'pressure washer'}
     item = id_codes[item_id[:3]]
     with open('inventory.json', 'r') as fin:
         inv_dict = json.load(fin)
     needed_list = inv_dict[item]['ids']
+    # this case is if an item is being removed from inventory
     if item_id == 0:
         inv_dict[item]['num'] -= 1
-        item_id = needed_list.pop()
+        removed_item_id = needed_list.pop()
+        # updates the list in the dictionary with the new list
+        # (the list with the item_id removed)
         inv_dict[item]['ids'] = needed_list
         with open("inventory.json", 'w') as fin:
             json.dump(inv_dict, fin)
-        return item_id
+        return removed_item_id
+    # this is the case if an item is being returned to inventory
     else:
         inv_dict[item]['num'] += 1
         needed_list.append(item_id)
@@ -218,8 +223,10 @@ def update_inventory(item_id):
 
 def initialize_inventory():
     """ None -> None
-    Initializes inventory.json if it is empty.
+    Initializes inventory.json if it is empty. Inventory is stored as a
+    dictionary of dictionaries.
     """
+    # exact format of inventory, for reference
     tools = {'auger': {'price': 250,
                        'num': 2,
                        'ids': ['AUG1', 'AUG2']},
