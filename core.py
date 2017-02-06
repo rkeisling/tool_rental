@@ -10,10 +10,9 @@ def main():
     print("Enter the number 1 for a transaction; "
           "to view inventory/transaction history, enter the number 2. "
           "(enter the number 9 to exit at any time)")
+    # throughout the file, there are checks for the input of 9; these are the same as cancel
     greet_answer = input()
-    # begin decision making here
     if greet_answer == '1':
-        # start transaction stuff
         return choose_trans()
     elif greet_answer == '2':
         return view_trans_or_inventory()
@@ -37,10 +36,10 @@ def choose_trans():
         item = input("What item is in question? ").strip().lower()
         return purchase(item)
     elif choice == '3':
-        item_id = input("Please input the ID of the returning item: ").strip()
+        item_id = input("Please input the ID of the returning item: ").strip().lower()
         return return_item(item_id)
     elif choice == '4':
-        item_id = input("Please input the ID of the item being replaced: ").strip()
+        item_id = input("Please input the ID of the item being replaced: ").strip().lower()
         return replace_item(item_id)
     elif choice == '9':
         return 'Have a nice day!'
@@ -79,7 +78,7 @@ def rent(item):
 
 def purchase(item):
     """ (str) -> str
-    Returns the total when given an item.
+    Returns the total and item id when given an item.
     """
     list_for_history = []
     if check_inventory(item):
@@ -93,13 +92,13 @@ def purchase(item):
                                  current_date,
                                  'N/A'])
         update_trans_history(list_for_history)
-        pretty_str = 'Total: {0}; Item ID: {1}'.format(price, current_id)
+        pretty_str = 'Total: ${0:.2f}; Item ID: {1}'.format(price, current_id)
         return pretty_str
     elif item == '9':
         return 'Have a nice day!'
     else:
         print("I'm sorry, that item is currently unavailable. Please check again later.")
-        main()
+        return main()
 
 
 def return_item(item_id):
@@ -120,9 +119,36 @@ def replace_item(item_id):
     """ (str) -> str
     Returns the total when given a item_id. Also updates inventory and trans history.
     """
-    # works same way as purchase, but with specific id instead of generic item
-    # replacement price is replacement price in inventory but minus 10% for deposit
-    return item_id
+    if item_id == '9':
+        return 'Have a nice day!'
+    else:
+        # checks if the fourth character and onward can be an integer
+        try:
+            int(item_id[3:])
+            id_codes = {'nai': 'nailgun', 'aug': 'auger', 'gen': 'generator',
+                        'air': 'air_compressor', 'til': 'tilesaw', 'pre': 'pressure_washer'}
+            # does the other check for id formatting
+            if item_id[:3] in id_codes:
+                item = id_codes[item_id[:3]]
+                list_for_history = []
+                price = get_price(item)
+                price = (price-(price*.1))*1.07
+                current_date = datetime.today()
+                list_for_history.extend([item_id,
+                                         'replacement',
+                                         'N/A', 'N/A',
+                                         'N/A', price,
+                                         current_date,
+                                         'N/A'])
+                update_trans_history(list_for_history)
+                pretty_str = 'Total: ${0:.2f}'.format(price)
+                return pretty_str
+            else:
+                print("That is an invalid ID. Please try again.")
+                return main()
+        except ValueError:
+            print("That is an invalid ID. Please try again.")
+            return main()
 
 
 def get_price(item):
@@ -211,7 +237,7 @@ def update_inventory_add(item_id):
     """
     # dictionary used to match item id to the item for easier lookup
     id_codes = {'nai': 'nailgun', 'aug': 'auger', 'gen': 'generator',
-                'air': 'air compressor', 'til': 'tile saw', 'pre': 'pressure washer'}
+                'air': 'air_compressor', 'til': 'tilesaw', 'pre': 'pressure_washer'}
     item = id_codes[item_id[:3]]
     with open('inventory.json', 'r') as fin:
         inv_dict = json.load(fin)
