@@ -1,4 +1,4 @@
-import json
+import pickle
 from os import stat
 from datetime import datetime
 
@@ -40,7 +40,8 @@ def choose_trans():
         return return_item(item_id)
     elif choice == '4':
         item_id = input("Please input the ID of the item being replaced: ").strip().lower()
-        return replace_item(item_id)
+        damaged = input("Please enter 1 if the item is damaged and 2 if not: ")
+        return replace_item(item_id, damaged)
     elif choice == '9':
         return 'Have a nice day!'
     else:
@@ -101,23 +102,26 @@ def purchase(item):
         return main()
 
 
-def return_item(item_id):
-    """ (str) -> str
+def return_item(item_id, late, damaged):
+    """ (str, str, str) -> str
     Returns the total when given a item_id. Also updates inventory and trans history.
     """
     # needs to check and see if the item is late or not
     # if late, charge 20% of item value for every hour late
     # if more than item value, just charge item value minus 10% for deposit
     # needs to see if item is damaged
-    # if damaged, charge nothing
+    # if damaged, charge nothing besides late fee
     # if not damaged, refund deposit (10% of replacement value)
     # use update_inventory to put item_id back into appropriate list
-    return item_id
+    price = get_price(item_id_to_item(item_id))
+    total_owed = 0
+    if late == '1':
+        return item_id
 
 
 def replace_item(item_id):
     """ (str) -> str
-    Returns the total when given a item_id. Also updates inventory and trans history.
+    Returns the total owed when given a item_id. Also updates inventory and trans history.
     """
     if item_id == '9':
         return 'Have a nice day!'
@@ -129,7 +133,7 @@ def replace_item(item_id):
                         'air': 'air_compressor', 'til': 'tilesaw', 'pre': 'pressure_washer'}
             # does the other check for id formatting
             if item_id[:3] in id_codes:
-                item = id_codes[item_id[:3]]
+                item = item_id_to_item(item_id)
                 list_for_history = []
                 price = get_price(item)
                 price = (price-(price*.1))*1.07
@@ -155,21 +159,31 @@ def get_price(item):
     """ (str) -> int
     Returns the replacement price from inventory when given an item.
     """
-    with open('inventory.json') as fin:
-        inv = json.load(fin)
+    with open('inventory.p') as fin:
+        inv = pickle.load(fin)
     return int(inv[item]['price'])
 
 
 def check_inventory(item):
     """ (str) -> bool
-    Returns T/F whether or not an item is in stock by accessing inventory.json.
+    Returns T/F whether or not an item is in stock by accessing inventory.p.
     """
-    with open('inventory.json') as fin:
-        inv = json.load(fin)
+    with open('inventory.p') as fin:
+        inv = pickle.load(fin)
     if inv[item]['num'] == 0:
         return False
     else:
         return True
+
+
+def item_id_to_item(item_id):
+    """ (str) -> str
+    Returns the item associated to the given item_id.
+    """
+    id_codes = {'nai': 'nailgun', 'aug': 'auger', 'gen': 'generator',
+                'air': 'air_compressor', 'til': 'tilesaw', 'pre': 'pressure_washer'}
+    item = id_codes[item_id[:3]]
+    return item
 
 
 def view_trans_or_inventory():
@@ -178,8 +192,8 @@ def view_trans_or_inventory():
     """
     option_answer = input("Please enter 1 to view inventory and 2 to view transaction history. ")
     if option_answer == '1':
-        with open('inventory.json', 'r') as fin:
-            data = json.load(fin)
+        with open('inventory.p', 'r') as fin:
+            data = pickle.load(fin)
             data_string = ""
             for key, value in data.items():
                 item = "Item - {0}; Price - ${1}; Number - {2}; IDs - {3}\n".format(
@@ -187,8 +201,8 @@ def view_trans_or_inventory():
                 data_string += item
             return data_string
     elif option_answer == '2':
-        with open('trans_history.json') as fin:
-            data = json.load(fin)
+        with open('trans_history.p') as fin:
+            data = pickle.load(fin)
             data_string = ""
             for each in data:
                 trans = ("Item ID - "+each['item_id']+
@@ -208,17 +222,17 @@ def view_trans_or_inventory():
 
 def update_trans_history(list_of_info):
     """ (list) -> None
-    Updates the list of dictionaries of transaction history objects in trans_history.json.
+    Updates the list of dictionaries of transaction history objects in trans_history.p.
     The transaction history is stored as a list of dictionaries.
     """
-    with open('trans_history.json', 'r') as fin:
+    with open('trans_history.p', 'r') as fin:
         # if the file is empty, make an empty list
-        if stat("trans_history.json").st_size == 0:
+        if stat("trans_history.p").st_size == 0:
             list_of_dict = []
         # if not, load up the current list
         else:
-            list_of_dict = json.load(fin)
-    with open('trans_history.json', 'w') as fin:
+            list_of_dict = pickle.load(fin)
+    with open('trans_history.p', 'wb') as fin:
         # converts the list_of_info to a dictionary and appends it
         list_of_dict.append({'item_id': list_of_info[0],
                              'trans_type': list_of_info[1],
@@ -228,47 +242,45 @@ def update_trans_history(list_of_info):
                              'amount_charged': list_of_info[5],
                              'date_of_trans': list_of_info[6],
                              'date_due': list_of_info[7]})
-        json.dump(list_of_dict, fin, default=json_serial)
+        pickle.dump(list_of_dict, fin)
 
 
 def update_inventory_add(item_id):
     """ (str) -> None
-    Updates inventory.json when something is being added back to the inventory.
+    Updates inventory.p when something is being added back to the inventory.
     """
     # dictionary used to match item id to the item for easier lookup
-    id_codes = {'nai': 'nailgun', 'aug': 'auger', 'gen': 'generator',
-                'air': 'air_compressor', 'til': 'tilesaw', 'pre': 'pressure_washer'}
-    item = id_codes[item_id[:3]]
-    with open('inventory.json', 'r') as fin:
-        inv_dict = json.load(fin)
+    item = item_id_to_item(item_id)
+    with open('inventory.p', 'r') as fin:
+        inv_dict = pickle.load(fin)
     needed_list = inv_dict[item]['ids']
     inv_dict[item]['num'] += 1
     needed_list.append(item_id)
     inv_dict[item]['ids'] = needed_list
-    with open("inventory.json", 'w') as fin:
-        json.dump(inv_dict, fin)
+    with open("inventory.p", 'wb') as fin:
+        pickle.dump(inv_dict, fin)
 
 
 def update_inventory_remove(item):
     """ (str) -> str
-    Updates inventory.json when something is being removed from the inventory.
+    Updates inventory.p when something is being removed from the inventory.
     """
-    with open('inventory.json', 'r') as fin:
-        inv_dict = json.load(fin)
+    with open('inventory.p', 'r') as fin:
+        inv_dict = pickle.load(fin)
     needed_list = inv_dict[item]['ids']
     inv_dict[item]['num'] -= 1
     removed_item_id = needed_list.pop()
     # updates the list in the dictionary with the new list
     # (the list with the item_id removed)
     inv_dict[item]['ids'] = needed_list
-    with open("inventory.json", 'w') as fin:
-        json.dump(inv_dict, fin)
+    with open("inventory.p", 'wb') as fin:
+        pickle.dump(inv_dict, fin)
     return removed_item_id
 
 
 def initialize_inventory():
     """ None -> None
-    Initializes inventory.json if it is empty. Inventory is stored as a
+    Initializes inventory.p if it is empty. Inventory is stored as a
     dictionary of dictionaries.
     """
     # exact format of inventory, for reference
@@ -291,19 +303,8 @@ def initialize_inventory():
                                  'num': 2,
                                  'ids': ['PRE1', 'PRE2']}
             }
-    with open('inventory.json', 'w') as fin:
-        json.dump(tools, fin)
-
-
-def json_serial(obj):
-    """ (obj) -> None
-    JSON serializer for objects not serializable by default json code
-    """
-    # this function fixes an issue with json serialization of datetime objects
-    if isinstance(obj, datetime):
-        serial = obj.isoformat()
-        return serial
-    raise TypeError("Type not serializable")
+    with open('inventory.p', 'wb') as fin:
+        pickle.dump(tools, fin)
 
 
 if __name__ == '__main__':
