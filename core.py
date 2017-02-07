@@ -122,7 +122,7 @@ def return_item(item_id, damaged):
                 amount_owed = 0
                 late_info = is_late(item_id)
                 if late_info[0]:
-                    overdue_charge = late_info[1] * (price*.2)
+                    overdue_charge = float(late_info[1]) * (price*.2)
                     if overdue_charge > price:
                         overdue_charge = price
                     amount_owed += overdue_charge
@@ -249,10 +249,11 @@ def view_trans_or_inventory():
     """ None -> None
     Prints inventory or transaction history to the terminal.
     """
-    # need to see if files are empty before trying to open them!
     option_answer = input("Please enter 1 to view inventory and 2 to view transaction history. ")
     if option_answer == '1':
         with open('inventory.p', 'rb') as fin:
+            if stat("inventory.p").st_size == 0:
+                return "There's nothing here!"
             data = pickle.load(fin)
             data_string = ""
             for key, value in data.items():
@@ -262,6 +263,8 @@ def view_trans_or_inventory():
             return data_string
     elif option_answer == '2':
         with open('trans_history.p', 'rb') as fin:
+            if stat("trans_history.p").st_size == 0:
+                return "There's nothing here!"
             data = pickle.load(fin)
             data_string = ""
             for each in data:
