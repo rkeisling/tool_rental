@@ -8,20 +8,19 @@ def main():
     """ None -> None
     Begins decision making and decides which path to follow.
     """
-    print("Enter the number 1 for a transaction; "
-          "to view inventory/transaction history, enter the number 2. "
-          "(enter the number 9 to exit at any time)")
-    # throughout the file, there are checks for the input of 9; these are the same as cancel
-    greet_answer = input()
-    if greet_answer == '1':
-        return choose_trans()
-    elif greet_answer == '2':
-        return view_trans_or_inventory()
-    elif greet_answer == '9':
-        return 'Have a nice day!'
-    else:
-        print("I'm sorry, I didn't catch that.")
-        return main()
+    while True:
+        greet_answer = input("Enter the number 1 for a transaction; "
+                             "to view inventory/transaction history, enter the number 2. "
+                             "(enter the number 9 to exit at any time) ")
+        # throughout the file, there are checks for the input of 9; these are the same as cancel
+        if greet_answer == '1':
+            print(choose_trans())
+        elif greet_answer == '2':
+            print(view_trans_or_inventory())
+        elif greet_answer == '9':
+            return 'Have a nice day!'
+        else:
+            print("I'm sorry, I didn't catch that.")
 
 
 def choose_trans():
@@ -38,6 +37,7 @@ def choose_trans():
         return purchase(item)
     elif choice == '3':
         item_id = input("Please input the ID of the returning item: ").strip().lower()
+
         damaged = input("Please enter 1 if the item is damaged and 2 if not: ")
         return return_item(item_id, damaged)
     elif choice == '4':
@@ -47,7 +47,7 @@ def choose_trans():
         return 'Have a nice day!'
     else:
         print("I'm sorry, I didn't quite catch that.")
-        return main()
+        return
 
 
 def rent(item):
@@ -75,7 +75,7 @@ def rent(item):
         return 'Have a nice day!'
     else:
         print("I'm sorry, that item is currently unavailable. Please check again later.")
-        print(main())
+        return
 
 
 def purchase(item):
@@ -100,7 +100,7 @@ def purchase(item):
         return 'Have a nice day!'
     else:
         print("I'm sorry, that item is currently unavailable. Please check again later.")
-        return main()
+        return
 
 
 def return_item(item_id, damaged):
@@ -110,43 +110,39 @@ def return_item(item_id, damaged):
     if item_id == '9':
         return 'Have a nice day!'
     else:
-        # checks if the fourth character and onward can be an integer
-        try:
-            int(item_id[3:])
-            id_codes = {'nai': 'nailgun', 'aug': 'auger', 'gen': 'generator',
-                        'air': 'air_compressor', 'til': 'tilesaw', 'pre': 'pressure_washer'}
-            if item_id[:3] in id_codes:
-                list_for_history = []
-                damaged_dict = {'1': True, '2': False}
-                price = get_price(item_id_to_item(item_id))
-                amount_owed = 0
-                late_info = is_late(item_id)
-                if late_info[0]:
-                    overdue_charge = float(late_info[1]) * (price*.2)
-                    if overdue_charge > price:
-                        overdue_charge = price
-                    amount_owed += overdue_charge
-                if damaged_dict[damaged] is False:
-                    amount_owed -= .1*price
-                amount_owed = amount_owed*1.07
-                list_for_history.extend([item_id,
-                                         'return',
-                                         damaged_dict[damaged],
-                                         late_info[0],
-                                         'N/A',
-                                         amount_owed,
-                                         datetime.now(),
-                                         'N/A'])
-                update_trans_history(list_for_history)
-                update_inventory_add(item_id)
-                pretty_str = 'Total: ${0:.2f}'.format(amount_owed)
-                return pretty_str
-            else:
-                print("That is an invalid ID. Please try again.")
-                return main()
-        except ValueError:
+        id_codes = {'nai': 'nailgun', 'aug': 'auger', 'gen': 'generator',
+                    'air': 'air_compressor', 'til': 'tilesaw', 'pre': 'pressure_washer'}
+        if item_id[:3] in id_codes:
+            list_for_history = []
+            damaged_dict = {'1': True, '2': False}
+            price = get_price(item_id_to_item(item_id))
+            amount_owed = 0
+            late_info = is_late(item_id)
+            if isinstance(late_info, str):
+                return late_info
+            if late_info[0]:
+                overdue_charge = float(late_info[1]) * (price*.2)
+                if overdue_charge > price:
+                    overdue_charge = price
+                amount_owed += overdue_charge
+            if damaged_dict[damaged] is False:
+                amount_owed -= .1*price
+            amount_owed = amount_owed*1.07
+            list_for_history.extend([item_id,
+                                     'return',
+                                     damaged_dict[damaged],
+                                     late_info[0],
+                                     'N/A',
+                                     amount_owed,
+                                     datetime.now(),
+                                     'N/A'])
+            update_trans_history(list_for_history)
+            update_inventory_add(item_id)
+            pretty_str = 'Total: ${0:.2f}'.format(amount_owed)
+            return pretty_str
+        else:
             print("That is an invalid ID. Please try again.")
-            return main()
+            return
 
 
 def replace_item(item_id):
@@ -156,37 +152,31 @@ def replace_item(item_id):
     if item_id == '9':
         return 'Have a nice day!'
     else:
-        # checks if the fourth character and onward can be an integer
-        try:
-            int(item_id[3:])
-            id_codes = {'nai': 'nailgun', 'aug': 'auger', 'gen': 'generator',
-                        'air': 'air_compressor', 'til': 'tilesaw', 'pre': 'pressure_washer'}
-            # does the other check for id formatting
-            if item_id[:3] in id_codes:
-                item = item_id_to_item(item_id)
-                list_for_history = []
-                price = get_price(item)
-                price = (price-(price*.1))*1.07
-                current_date = datetime.today()
-                list_for_history.extend([item_id,
-                                         'replacement',
-                                         'N/A', 'N/A',
-                                         'N/A', price,
-                                         current_date,
-                                         'N/A'])
-                update_trans_history(list_for_history)
-                pretty_str = 'Total: ${0:.2f}'.format(price)
-                return pretty_str
-            else:
-                print("That is an invalid ID. Please try again.")
-                return main()
-        except ValueError:
+        int(item_id[3:])
+        id_codes = {'nai': 'nailgun', 'aug': 'auger', 'gen': 'generator',
+                    'air': 'air_compressor', 'til': 'tilesaw', 'pre': 'pressure_washer'}
+        if item_id[:3] in id_codes:
+            item = item_id_to_item(item_id)
+            list_for_history = []
+            price = get_price(item)
+            price = (price-(price*.1))*1.07
+            current_date = datetime.today()
+            list_for_history.extend([item_id,
+                                     'replacement',
+                                     'N/A', 'N/A',
+                                     'N/A', price,
+                                     current_date,
+                                     'N/A'])
+            update_trans_history(list_for_history)
+            pretty_str = 'Total: ${0:.2f}'.format(price)
+            return pretty_str
+        else:
             print("That is an invalid ID. Please try again.")
-            return main()
+            return
 
 
 def is_late(item_id):
-    """ (str) -> list(bool, float)
+    """ (str) -> list(bool, float) or str
     Returns a list of a bool (if the item is late) and a float (how many hours overdue).
     Checks trans_history.p to see if the given item_id is late or not.
     """
@@ -195,6 +185,7 @@ def is_late(item_id):
         history = pickle.load(fin)
     for each in reversed(history):
         if each['item_id'] == item_id:
+            # unorderable types? weird because theyre both datetime objects
             if each['date_due'] > datetime.now(): # if it's late
                 hours = return_hours(datetime.now(), each['date_due'])
                 late = True
@@ -202,8 +193,7 @@ def is_late(item_id):
             else:
                 hours = 0
                 return [late, hours]
-    print("I can't seem to find that item in the transaction history. Sorry!")
-    return main()
+    return "I can't seem to find that item in the transaction history. Sorry!"
 
 
 def return_hours(now, before_time):
@@ -268,7 +258,7 @@ def view_trans_or_inventory():
             data = pickle.load(fin)
             data_string = ""
             for each in data:
-                trans = ("Item ID - "+each['item_id']+
+                trans = ("Item ID - "+each['item_id'].upper()+
                          "; Transaction - "+each['trans_type']+
                          "; Amount Charged - $"+str(each['amount_charged'])+"; "
                          "Time Choice - "+each['time_choice']+
@@ -297,7 +287,7 @@ def update_trans_history(list_of_info):
             list_of_dict = pickle.load(fin)
     with open('trans_history.p', 'wb') as fin:
         # converts the list_of_info to a dictionary and appends it
-        list_of_dict.append({'item_id': list_of_info[0],
+        list_of_dict.append({'item_id': list_of_info[0].lower(),
                              'trans_type': list_of_info[1],
                              'return_info': {'damaged': list_of_info[2],
                                              'past_due': list_of_info[3]},
