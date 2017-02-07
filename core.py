@@ -1,3 +1,4 @@
+
 import pickle
 from os import stat
 from datetime import datetime
@@ -37,11 +38,11 @@ def choose_trans():
         return purchase(item)
     elif choice == '3':
         item_id = input("Please input the ID of the returning item: ").strip().lower()
-        return return_item(item_id)
+        damaged = input("Please enter 1 if the item is damaged and 2 if not: ")
+        return return_item(item_id, damaged)
     elif choice == '4':
         item_id = input("Please input the ID of the item being replaced: ").strip().lower()
-        damaged = input("Please enter 1 if the item is damaged and 2 if not: ")
-        return replace_item(item_id, damaged)
+        return replace_item(item_id)
     elif choice == '9':
         return 'Have a nice day!'
     else:
@@ -102,21 +103,50 @@ def purchase(item):
         return main()
 
 
-def return_item(item_id, late, damaged):
-    """ (str, str, str) -> str
+def return_item(item_id, damaged):
+    """ (str, str) -> str
     Returns the total when given a item_id. Also updates inventory and trans history.
     """
-    # needs to check and see if the item is late or not
-    # if late, charge 20% of item value for every hour late
-    # if more than item value, just charge item value minus 10% for deposit
-    # needs to see if item is damaged
-    # if damaged, charge nothing besides late fee
-    # if not damaged, refund deposit (10% of replacement value)
-    # use update_inventory to put item_id back into appropriate list
-    price = get_price(item_id_to_item(item_id))
-    total_owed = 0
-    if late == '1':
-        return item_id
+    if item_id == '9':
+        return 'Have a nice day!'
+    else:
+        # checks if the fourth character and onward can be an integer
+        try:
+            int(item_id[3:])
+            id_codes = {'nai': 'nailgun', 'aug': 'auger', 'gen': 'generator',
+                        'air': 'air_compressor', 'til': 'tilesaw', 'pre': 'pressure_washer'}
+            if item_id[:3] in id_codes:
+                list_for_history = []
+                damaged_dict = {'1': True, '2': False}
+                price = get_price(item_id_to_item(item_id))
+                amount_owed = 0
+                late_info = is_late(item_id)
+                if late_info[0]:
+                    overdue_charge = late_info[1] * (price*.2)
+                    if overdue_charge > price:
+                        overdue_charge = price
+                    amount_owed += overdue_charge
+                if damaged_dict[damaged] is False:
+                    amount_owed -= .1*price
+                amount_owed = amount_owed*1.07
+                list_for_history.extend([item_id,
+                                         'return',
+                                         damaged_dict[damaged],
+                                         late_info[0],
+                                         'N/A',
+                                         amount_owed,
+                                         datetime.now(),
+                                         'N/A'])
+                update_trans_history(list_for_history)
+                update_inventory_add(item_id)
+                pretty_str = 'Total: ${0:.2f}'.format(amount_owed)
+                return pretty_str
+            else:
+                print("That is an invalid ID. Please try again.")
+                return main()
+        except ValueError:
+            print("That is an invalid ID. Please try again.")
+            return main()
 
 
 def replace_item(item_id):
@@ -155,6 +185,35 @@ def replace_item(item_id):
             return main()
 
 
+def is_late(item_id):
+    """ (str) -> list(bool, float)
+    Returns a list of a bool (if the item is late) and a float (how many hours overdue).
+    Checks trans_history.p to see if the given item_id is late or not.
+    """
+    late = False
+    with open("trans_history.p", 'rb') as fin:
+        history = pickle.load(fin)
+    for each in reversed(history):
+        if each['item_id'] == item_id:
+            if each['date_due'] > datetime.now(): # if it's late
+                hours = return_hours(datetime.now(), each['date_due'])
+                late = True
+                return [late, hours]
+            else:
+                hours = 0
+                return [late, hours]
+    print("I can't seem to find that item in the transaction history. Sorry!")
+    return main()
+
+
+def return_hours(now, before_time):
+    """ (datetime, datetime) -> float
+    Returns the amount of hours between two datetime objects.
+    """
+    diff = now - before_time
+    return diff.seconds//3600 + (diff.seconds//60)%60/60
+
+
 def get_price(item):
     """ (str) -> int
     Returns the replacement price from inventory when given an item.
@@ -190,6 +249,7 @@ def view_trans_or_inventory():
     """ None -> None
     Prints inventory or transaction history to the terminal.
     """
+    # need to see if files are empty before trying to open them!
     option_answer = input("Please enter 1 to view inventory and 2 to view transaction history. ")
     if option_answer == '1':
         with open('inventory.p', 'rb') as fin:
@@ -209,7 +269,7 @@ def view_trans_or_inventory():
                          "; Transaction - "+each['trans_type']+
                          "; Amount Charged - $"+str(each['amount_charged'])+"; "
                          "Time Choice - "+each['time_choice']+
-                         "; Date Of - "+each['date_of_trans']+
+                         "; Date Of - "+each['date_of_trans'].strftime('%m/%d/%Y %H:%M')+
                          "; Due By - "+each['date_due']+"; "
                          "Damaged on Return - "+each['return_info']['damaged']+
                          "; Past Due - "+each['return_info']['past_due']+"\n")
@@ -276,6 +336,14 @@ def update_inventory_remove(item):
     with open("inventory.p", 'wb') as fin:
         pickle.dump(inv_dict, fin)
     return removed_item_id
+
+
+def wipe_trans_history():
+    """ (None) -> None
+    Deletes all content from trans_history.
+    """
+    fin = open('trans_history.p', 'wb')
+    fin.close()
 
 
 def initialize_inventory():
