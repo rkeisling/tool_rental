@@ -1,7 +1,7 @@
 
 import pickle
 from os import stat
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 def main():
@@ -30,11 +30,18 @@ def choose_trans():
     choice = input("Please enter the number according to the transaction. "
                    "(rental - 1, purchase - 2, return - 3, or replace - 4) ").strip().lower()
     if choice == '1':
-        item = input("What item is in question? ").strip().lower()
-        return rent(item)
+        item_num = input("Enter the corresponding number for your choice: \n"
+                         "1 - Auger\n2 - Nailgun\n3 - Generator\n4 - Pressure Washer\n"
+                         "5 - Air Compressor\n6 - Tilesaw").strip()
+        time_choice = input(('Please enter 1 to rent the item for 5 hours, '
+                             '2 for one day, 3 for one week, '
+                             'and 4 for one month. ')).strip()
+        return rent(choice_num_to_item(item_num), time_choice)
     elif choice == '2':
-        item = input("What item is in question? ").strip().lower()
-        return purchase(item)
+        item_num = input("Enter the corresponding number for your choice: \n"
+                         "1 - Auger\n2 - Nailgun\n3 - Generator\n4 - Pressure Washer\n"
+                         "5 - Air Compressor\n6 - Tilesaw").strip()
+        return purchase(choice_num_to_item(item_num))
     elif choice == '3':
         item_id = input("Please input the ID of the returning item: ").strip().lower()
 
@@ -50,32 +57,62 @@ def choose_trans():
         return
 
 
-def rent(item):
+def rent(item: str, time_choice: str) -> str:
     """ (str) -> str
     Returns the overall total for renting <item> for <time_choice> amount of time,
     along with the date and time the tool should be returned by.
 
-    >>> rent(Auger, AUG1, 5hour, 01/20/17 10:08)
-    Tool ID: AUG1
+    >>> rent(auger)
+    Tool ID: aug1
     Return By: 01/20/17 15:08
     Total Due: $80.25
-    >>> rent(Nailgun, NAI3, 1week, 02/01/17 13:53)
-    Tool ID: NAI3
+    >>> rent(nailgun)
+    Tool ID: nai3
     Return By: 02/08/17 13:53
-    Total Due: $224.7
+    Total Due: $224.70
     """
-    # needs to build up a string that eventually gets written to trans history
-    # needs to remove said item id from inventory using update inventory
-    # needs to calculate total owed amount and return it
     if check_inventory(item):
-        time_choice = input(('Please choose the length of time to rent a '+item+'. '
-                             '(5hour, 1day, 1week, or 1month) '))
-        return (item, time_choice)
+        list_for_history = []
+        time_dict = {'1': {'time': '5hour', 'percent': .2},
+                     '2': {'time': '1day', 'percent': .3},
+                     '3': {'time': '1week', 'percent': .6},
+                     '4': {'time': '1month', 'percent': .9}}
+        date_due = calculate_return_date(time_dict[time_choice]['time'])
+        price = get_price(item)
+        amount_owed = ((price*.1)+(price*time_dict[time_choice]['percent']))*1.07
+        item_id = update_inventory_remove(item)
+        list_for_history.extend([item_id,
+                                 'rental',
+                                 'N/A', 'N/A',
+                                 time_dict[time_choice]['time'],
+                                 amount_owed,
+                                 datetime.now(),
+                                 date_due])
+        update_trans_history(list_for_history)
+        data_string = 'Tool ID: {0}\nReturn By: {1}\nTotal Due: ${2:.2f}'.format(
+            item_id.upper(),
+            date_due,
+            amount_owed
+        )
+        return data_string
     elif item == '9':
         return 'Have a nice day!'
     else:
-        print("I'm sorry, that item is currently unavailable. Please check again later.")
-        return
+        return "I'm sorry, that item is currently unavailable. Please check again later."
+
+
+def calculate_return_date(time_choice: str) -> datetime:
+    """
+    Returns a datetime object that is timechoice away from the current
+    datetime.
+    """
+    time_conv_dict = {'5hour': 5,
+                      '1day': 24,
+                      '1week': 168,
+                      '1month': 720}
+    hours = time_conv_dict[time_choice]
+    return_date = datetime.now() + timedelta(hours=hours)
+    return return_date
 
 
 def purchase(item):
@@ -196,6 +233,19 @@ def is_late(item_id):
     return "I can't seem to find that item in the transaction history. Sorry!"
 
 
+def choice_num_to_item(num: str) -> str:
+    """
+    Returns the correct item when given a number choice
+    """
+    num_to_item_dict = {'1': 'auger',
+                        '2': 'nailgun',
+                        '3': 'generator',
+                        '4': 'pressure washer',
+                        '5': 'air compressor',
+                        '6': 'tilesaw'}
+    return num_to_item_dict[num]
+
+
 def return_hours(now, before_time):
     """ (datetime, datetime) -> float
     Returns the amount of hours between two datetime objects.
@@ -258,14 +308,24 @@ def view_trans_or_inventory():
             data = pickle.load(fin)
             data_string = ""
             for each in data:
-                trans = ("Item ID - "+each['item_id'].upper()+
-                         "; Transaction - "+each['trans_type']+
-                         "; Amount Charged - $"+str(each['amount_charged'])+"; "
-                         "Time Choice - "+each['time_choice']+
-                         "; Date Of - "+each['date_of_trans'].strftime('%m/%d/%Y %H:%M')+
-                         "; Due By - "+each['date_due']+"; "
-                         "Damaged on Return - "+each['return_info']['damaged']+
-                         "; Past Due - "+each['return_info']['past_due']+"\n")
+                if isinstance(each['date_due'], str):
+                    trans = ("Item ID - "+each['item_id'].upper()+
+                             "; Transaction - "+each['trans_type']+
+                             "; Amount Charged - $"+str(each['amount_charged'])+"; "
+                             "Time Choice - "+each['time_choice']+
+                             "; Date Of - "+each['date_of_trans'].strftime('%m/%d/%Y %H:%M')+
+                             "; Due By - "+each['date_due']+"; "
+                             "Damaged on Return - "+each['return_info']['damaged']+
+                             "; Past Due - "+each['return_info']['past_due']+"\n")
+                else:
+                    trans = ("Item ID - "+each['item_id'].upper()+
+                             "; Transaction - "+each['trans_type']+
+                             "; Amount Charged - $"+str(each['amount_charged'])+"; "
+                             "Time Choice - "+each['time_choice']+
+                             "; Date Of - "+each['date_of_trans'].strftime('%m/%d/%Y %H:%M')+
+                             "; Due By - "+each['date_due'].strftime('%m/%d/%Y %H:%M')+"; "
+                             "Damaged on Return - "+each['return_info']['damaged']+
+                             "; Past Due - "+each['return_info']['past_due']+"\n")
                 data_string += trans
             return data_string
     else:
@@ -347,22 +407,22 @@ def initialize_inventory():
     # exact format of inventory, for reference
     tools = {'auger': {'price': 250,
                        'num': 2,
-                       'ids': ['AUG1', 'AUG2']},
+                       'ids': ['aug1', 'aug2']},
              'generator': {'price': 1500,
                            'num': 3,
-                           'ids': ['GEN1', 'GEN2', 'GEN3']},
+                           'ids': ['gen1', 'gen2', 'gen3']},
              'nailgun': {'price': 300,
                          'num': 5,
-                         'ids': ['NAI1', 'NAI2', 'NAI3', 'NAI4', 'NAI5']},
+                         'ids': ['nai1', 'nai2', 'nai3', 'nai4', 'nai5']},
              'air_compressor': {'price': 500,
                                 'num': 3,
-                                'ids': ['AIR1', 'AIR2', 'AIR3']},
+                                'ids': ['air1', 'air2', 'air3']},
              'tilesaw': {'price': 350,
                          'num': 1,
-                         'ids': ['TIL1']},
+                         'ids': ['til1']},
              'pressure_washer': {'price': 600,
                                  'num': 2,
-                                 'ids': ['PRE1', 'PRE2']}
+                                 'ids': ['pre1', 'pre2']}
             }
     with open('inventory.p', 'wb') as fin:
         pickle.dump(tools, fin)
