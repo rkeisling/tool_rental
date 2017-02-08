@@ -3,8 +3,10 @@ import pickle
 from os import stat
 from datetime import datetime, timedelta
 from collections import namedtuple
+from typing import Union, Any
 
-TimePercent = namedtuple("TimePercent", 'time percent')
+TimePercent = namedtuple("TimePercent", ['time',
+                                         'percent'])
 TransInfo = namedtuple("TransInfo", ['item_id',
                                      'trans_type',
                                      'damaged',
@@ -13,6 +15,8 @@ TransInfo = namedtuple("TransInfo", ['item_id',
                                      'amount_charged',
                                      'date_of_trans',
                                      'date_due'])
+LateInfo = namedtuple("LateInfo", ['late_bool',
+                                   'hours'])
 
 
 def main():
@@ -34,9 +38,9 @@ def main():
             print("I'm sorry, I didn't catch that.")
 
 
-def choose_trans():
-    """ (str) -> None
-    Handles transaction choice.
+def choose_trans() -> Any:
+    """
+    Handles transaction choice; returns result of one of several functions.
     """
     choice = input("Please enter the number according to the transaction. "
                    "(rental - 1, purchase - 2, return - 3, or replace - 4) ").strip().lower()
@@ -57,7 +61,8 @@ def choose_trans():
         item_id = input("Please input the ID of the returning item: ").strip().lower()
 
         damaged = input("Please enter 1 if the item is damaged and 2 if not: ")
-        return return_item(item_id, damaged)
+        damaged_dict = {'1': True, '2': False}
+        return return_item(item_id, damaged_dict[damaged])
     elif choice == '4':
         item_id = input("Please input the ID of the item being replaced: ").strip().lower()
         return replace_item(item_id)
@@ -69,7 +74,7 @@ def choose_trans():
 
 
 def rent(item: str, time_choice: str) -> str:
-    """ (str) -> str
+    """
     Returns the overall total for renting <item> for <time_choice> amount of time,
     along with the date and time the tool should be returned by.
 
@@ -111,20 +116,6 @@ def rent(item: str, time_choice: str) -> str:
         return "I'm sorry, that item is currently unavailable. Please check again later."
 
 
-def calculate_return_date(time_choice: str) -> datetime:
-    """
-    Returns a datetime object that is timechoice away from the current
-    datetime.
-    """
-    time_conv_dict = {'5hour': 5,
-                      '1day': 24,
-                      '1week': 168,
-                      '1month': 720}
-    hours = time_conv_dict[time_choice]
-    return_date = datetime.now() + timedelta(hours=hours)
-    return return_date
-
-
 def purchase(item: str) -> str:
     """
     Returns the total and item id in a string when given an item.
@@ -140,7 +131,7 @@ def purchase(item: str) -> str:
                                current_date,
                                'N/A')
         update_trans_history(trans_info)
-        pretty_str = 'Total: ${0:.2f}; Item ID: {1}'.format(price, current_id)
+        pretty_str = 'Total: ${0:.2f}\nItem ID: {1}'.format(price, current_id)
         return pretty_str
     elif item == '9':
         return 'Have a nice day!'
@@ -148,8 +139,8 @@ def purchase(item: str) -> str:
         return "I'm sorry, that item is currently unavailable. Please check again later."
 
 
-def return_item(item_id, damaged):
-    """ (str, str) -> str
+def return_item(item_id: str, damaged: bool):
+    """
     Returns the total when given a item_id. Also updates inventory and trans history.
     """
     if item_id == '9':
@@ -158,23 +149,22 @@ def return_item(item_id, damaged):
         id_codes = {'nai': 'nailgun', 'aug': 'auger', 'gen': 'generator',
                     'air': 'air_compressor', 'til': 'tilesaw', 'pre': 'pressure_washer'}
         if item_id[:3] in id_codes:
-            damaged_dict = {'1': True, '2': False}
             price = get_price(item_id_to_item(item_id))
-            amount_owed = 0
+            amount_owed = 0.0
             late_info = is_late(item_id)
             if isinstance(late_info, str):
                 return late_info
-            if late_info[0]:
-                overdue_charge = float(late_info[1]) * (price*.2)
+            if late_info.late_bool:
+                overdue_charge = float(late_info.hours) * (price*.2)
                 if overdue_charge > price:
                     overdue_charge = price
                 amount_owed += overdue_charge
-            if damaged_dict[damaged] is False:
+            if damaged is False:
                 amount_owed -= .1*price
             trans_info = TransInfo(item_id,
                                    'return',
-                                   damaged_dict[damaged],
-                                   late_info[0],
+                                   damaged,
+                                   late_info.late_bool,
                                    'N/A',
                                    amount_owed,
                                    datetime.now(),
@@ -187,8 +177,8 @@ def return_item(item_id, damaged):
             return "That is an invalid ID. Please try again."
 
 
-def replace_item(item_id):
-    """ (str) -> str
+def replace_item(item_id: str) -> str:
+    """
     Returns the total owed when given a item_id. Also updates inventory and trans history.
     """
     if item_id == '9':
@@ -199,7 +189,7 @@ def replace_item(item_id):
                     'air': 'air_compressor', 'til': 'tilesaw', 'pre': 'pressure_washer'}
         if item_id[:3] in id_codes:
             item = item_id_to_item(item_id)
-            price = get_price(item)
+            price = float(get_price(item))
             price = (price-(price*.1))*1.07
             current_date = datetime.today()
             trans_info = TransInfo(item_id,
@@ -215,8 +205,8 @@ def replace_item(item_id):
             return "That is an invalid ID. Please try again."
 
 
-def is_late(item_id):
-    """ (str) -> list(bool, float) or str
+def is_late(item_id: str) -> Union[LateInfo, str]:
+    """
     Returns a list of a bool (if the item is late) and a float (how many hours overdue).
     Checks trans_history.p to see if the given item_id is late or not.
     """
@@ -228,11 +218,25 @@ def is_late(item_id):
             if each['date_due'] < datetime.now(): # if it's late
                 hours = return_hours(datetime.now(), each['date_due'])
                 late = True
-                return [late, hours]
+                return LateInfo(late, hours)
             else:
                 hours = 0
-                return [late, hours]
+                return LateInfo(late, hours)
     return "I can't seem to find that item in the transaction history. Sorry!"
+
+
+def calculate_return_date(time_choice: str) -> datetime:
+    """
+    Returns a datetime object that is timechoice away from the current
+    datetime.
+    """
+    time_conv_dict = {'5hour': 5,
+                      '1day': 24,
+                      '1week': 168,
+                      '1month': 720}
+    hours = time_conv_dict[time_choice]
+    return_date = datetime.now() + timedelta(hours=hours)
+    return return_date
 
 
 def choice_num_to_item(num: str) -> str:
@@ -248,16 +252,16 @@ def choice_num_to_item(num: str) -> str:
     return num_to_item_dict[num]
 
 
-def return_hours(now, before_time):
-    """ (datetime, datetime) -> float
+def return_hours(now: datetime, before_time: datetime) -> float:
+    """
     Returns the amount of hours between two datetime objects.
     """
     diff = now - before_time
     return diff.seconds//3600 + (diff.seconds//60)%60/60
 
 
-def get_price(item):
-    """ (str) -> int
+def get_price(item: str) -> int:
+    """
     Returns the replacement price from inventory when given an item.
     """
     with open('inventory.p', 'rb') as fin:
@@ -265,8 +269,8 @@ def get_price(item):
     return int(inv[item]['price'])
 
 
-def check_inventory(item):
-    """ (str) -> bool
+def check_inventory(item: str) -> bool:
+    """
     Returns T/F whether or not an item is in stock by accessing inventory.p.
     """
     with open('inventory.p', 'rb') as fin:
@@ -277,8 +281,8 @@ def check_inventory(item):
         return True
 
 
-def item_id_to_item(item_id):
-    """ (str) -> str
+def item_id_to_item(item_id: str) -> str:
+    """
     Returns the item associated to the given item_id.
     """
     id_codes = {'nai': 'nailgun', 'aug': 'auger', 'gen': 'generator',
@@ -287,8 +291,8 @@ def item_id_to_item(item_id):
     return item
 
 
-def view_trans_or_inventory():
-    """ None -> None
+def view_trans_or_inventory() -> str:
+    """
     Prints inventory or transaction history to the terminal.
     """
     option_answer = input("Please enter 1 to view inventory and 2 to view transaction history. ")
@@ -299,7 +303,7 @@ def view_trans_or_inventory():
             data = pickle.load(fin)
             data_string = ""
             for key, value in data.items():
-                item = "Item - {0}; Price - ${1}; Number - {2}; IDs - {3}\n".format(
+                item = "Item - {0}\nPrice - ${1}\nNumber - {2}\nIDs - {3}\n--------------\n".format(
                     key.replace('_', ' ').capitalize(), value['price'], value['num'], value['ids'])
                 data_string += item
             return data_string
@@ -312,31 +316,32 @@ def view_trans_or_inventory():
             for each in data:
                 if isinstance(each['date_due'], str):
                     trans = ("Item ID - "+each['item_id'].upper()+
-                             "; Transaction - "+each['trans_type']+
-                             "; Amount Charged - ${0:.2f}".format(each['amount_charged'])+"; "
+                             "\nTransaction - "+each['trans_type']+
+                             "\nAmount Charged - ${0:.2f}".format(each['amount_charged'])+"\n"
                              "Time Choice - "+each['time_choice']+
-                             "; Date Of - "+each['date_of_trans'].strftime('%m/%d/%Y %H:%M')+
-                             "; Due By - "+each['date_due']+"; "
+                             "\nDate Of - "+each['date_of_trans'].strftime('%m/%d/%Y %H:%M')+
+                             "\nDue By - "+each['date_due']+"\n"
                              "Damaged on Return - "+str(each['return_info']['damaged'])+
-                             "; Past Due - "+str(each['return_info']['past_due'])+"\n")
+                             "\nPast Due - "+str(each['return_info']['past_due'])+
+                             "\n--------------------------\n")
                 else:
                     trans = ("Item ID - "+each['item_id'].upper()+
-                             "; Transaction - "+each['trans_type']+
-                             "; Amount Charged - ${0:.2f}".format(each['amount_charged'])+"; "
+                             "\nTransaction - "+each['trans_type']+
+                             "\nAmount Charged - ${0:.2f}".format(each['amount_charged'])+"\n"
                              "Time Choice - "+each['time_choice']+
-                             "; Date Of - "+each['date_of_trans'].strftime('%m/%d/%Y %H:%M')+
-                             "; Due By - "+each['date_due'].strftime('%m/%d/%Y %H:%M')+"; "
+                             "\nDate Of - "+each['date_of_trans'].strftime('%m/%d/%Y %H:%M')+
+                             "\nDue By - "+each['date_due'].strftime('%m/%d/%Y %H:%M')+"\n"
                              "Damaged on Return - "+str(each['return_info']['damaged'])+
-                             "; Past Due - "+str(each['return_info']['past_due'])+"\n")
+                             "\nPast Due - "+str(each['return_info']['past_due'])+
+                             "\n--------------------------\n")
                 data_string += trans
             return data_string
     else:
-        print("I'm sorry, I didn't quite get that.")
-        view_trans_or_inventory()
+        return "I'm sorry, I didn't quite get that."
 
 
 def update_trans_history(trans_info_tuple: TransInfo) -> None:
-    """ (list) -> None
+    """
     Updates the list of dictionaries of transaction history objects in trans_history.p.
     The transaction history is stored as a list of dictionaries.
     """
@@ -360,8 +365,8 @@ def update_trans_history(trans_info_tuple: TransInfo) -> None:
         pickle.dump(list_of_dict, fin)
 
 
-def update_inventory_add(item_id):
-    """ (str) -> None
+def update_inventory_add(item_id: str) -> None:
+    """
     Updates inventory.p when something is being added back to the inventory.
     """
     # dictionary used to match item id to the item for easier lookup
@@ -376,8 +381,8 @@ def update_inventory_add(item_id):
         pickle.dump(inv_dict, fin)
 
 
-def update_inventory_remove(item):
-    """ (str) -> str
+def update_inventory_remove(item: str) -> str:
+    """
     Updates inventory.p when something is being removed from the inventory.
     """
     with open('inventory.p', 'rb') as fin:
@@ -393,16 +398,16 @@ def update_inventory_remove(item):
     return removed_item_id
 
 
-def wipe_trans_history():
-    """ (None) -> None
+def wipe_trans_history() -> None:
+    """
     Deletes all content from trans_history.
     """
     fin = open('trans_history.p', 'wb')
     fin.close()
 
 
-def initialize_inventory():
-    """ None -> None
+def initialize_inventory() -> None:
+    """
     Initializes inventory.p if it is empty. Inventory is stored as a
     dictionary of dictionaries.
     """
