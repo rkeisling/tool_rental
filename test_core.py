@@ -1,5 +1,5 @@
 """These are the tests for core.py."""
-from datetime import datetime, timedelta
+from datetime import datetime
 import core
 
 # these just make the data layer fresh in order to avoid failed tests
@@ -106,5 +106,23 @@ def test_is_valid_item():
     """
     Placeholder.
     """
-    assert core.is_valid_item('nailgun') == True
-    assert core.is_valid_item('water gun') == False
+    assert core.is_valid_item('nailgun') is True
+    assert core.is_valid_item('water gun') is False
+
+
+def test_get_time_diff():
+    """
+    Placeholder.
+    """
+    time_one = datetime(2017, 2, 2, 2, 51, 0)
+    time_two = datetime(2017, 2, 9, 2, 51, 0)
+    assert core.get_time_diff(time_two, time_one) == 168
+
+
+def test_return_hours():
+    """
+    Placeholder.
+    """
+    time_three = datetime(2015, 3, 14, 9, 30, 0)
+    time_four = datetime(2015, 3, 25, 3, 30, 0)
+    assert core.return_hours(time_four - time_three) == 258

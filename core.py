@@ -1,4 +1,6 @@
-''' my module documentation '''
+'''
+Module documentation here.
+'''
 import pickle
 from os import stat
 from datetime import datetime, timedelta
@@ -53,12 +55,14 @@ def choose_trans() -> Any:
         time_choice = input(('Please enter 1 to rent the item for 5 hours, '
                              '2 for one day, 3 for one week, '
                              'and 4 for one month. ')).strip()
-        return rent(choice_num_to_item(item_num), time_choice)
+        if is_valid_item(choice_num_to_item(item_num)):
+            return rent(choice_num_to_item(item_num), time_choice)
     elif choice == '2':
         item_num = input("Enter the corresponding number for your choice: \n"
                          "1 - Auger\n2 - Nailgun\n3 - Generator\n4 - Pressure Washer\n"
                          "5 - Air Compressor\n6 - Tilesaw\n").strip()
-        return purchase(choice_num_to_item(item_num))
+        if is_valid_item(choice_num_to_item(item_num)):
+            return purchase(choice_num_to_item(item_num))
     elif choice == '3':
         item_id = input("Please input the ID of the returning item: ").strip().lower()
 
@@ -71,8 +75,7 @@ def choose_trans() -> Any:
     elif choice == '9':
         return 'Have a nice day!'
     else:
-        print("I'm sorry, I didn't quite catch that.")
-        return
+        return "I'm sorry, I didn't quite catch that."
 
 
 def rent(item: str, time_choice: str) -> str:
@@ -232,7 +235,7 @@ def is_late(item_id: str) -> Union[LateInfo, str]:
                 if trans_id.id == each['item_id'] and trans_id.trans_type == 'replacement':
                     return "I can't seem to find that item in the transaction history. Sorry!"
             if each['date_due'] < datetime.now(): # if it's late
-                hours = return_hours(datetime.now(), each['date_due'])
+                hours = get_time_diff(datetime.now(), each['date_due'])
                 late = True
                 return LateInfo(late, hours)
             else:
@@ -271,12 +274,18 @@ def choice_num_to_item(num: str) -> str:
         return 'That is not a valid choice.'
 
 
-def return_hours(now: datetime, before_time: datetime) -> float:
+def get_time_diff(now: datetime, before_time: datetime) -> float:
     """
     Returns the amount of hours between two datetime objects.
     """
-    diff = now - before_time
-    return float("{0:.2f}".format(diff.seconds//3600 + (diff.seconds//60)%60/60))
+    return float("{0:.2f}".format(return_hours(now - before_time)))
+
+
+def return_hours(diff: timedelta) -> int:
+    """
+    Converts a timedelta object into hours and returns it.
+    """
+    return round(diff.total_seconds()/3600)
 
 
 def get_price(item: str) -> int:
@@ -458,4 +467,4 @@ def initialize_inventory() -> None:
 
 
 if __name__ == '__main__':
-    print(main())
+    main()
