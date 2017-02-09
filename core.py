@@ -17,11 +17,13 @@ TransInfo = namedtuple("TransInfo", ['item_id',
                                      'date_due'])
 LateInfo = namedtuple("LateInfo", ['late_bool',
                                    'hours'])
+TransTypeAndId = namedtuple('TransTypeAndId', ['id',
+                                               'trans_type'])
 
 
-def main():
-    """ None -> None
-    Begins decision making and decides which path to follow.
+def main() -> Any:
+    """
+    Main function; takes the the majority of the inputs and ties the program together.
     """
     while True:
         greet_answer = input("Enter the number 1 for a transaction; "
@@ -78,16 +80,18 @@ def rent(item: str, time_choice: str) -> str:
     Returns the overall total for renting <item> for <time_choice> amount of time,
     along with the date and time the tool should be returned by.
 
-    >>> rent(auger)
-    Tool ID: aug1
+    >>> rent('auger', '1week')
+    Item ID: AUG1
     Return By: 01/20/17 15:08
-    Total Due: $80.25
-    >>> rent(nailgun)
-    Tool ID: nai3
+    Total Due: $187.25
+    >>> rent(nailgun, '1day')
+    Item ID: NAI3
     Return By: 02/08/17 13:53
-    Total Due: $224.70
+    Total Due: $128.40
     """
-    if check_inventory(item) and int(time_choice) <= 4:
+    if item == '9':
+        return 'Have a nice day!'
+    elif is_valid_item(item) and check_inventory(item) and int(time_choice) <= 4:
         time_dict = {'1': TimePercent('5hour', .2),
                      '2': TimePercent('1day', .3),
                      '3': TimePercent('1week', .6),
@@ -104,14 +108,12 @@ def rent(item: str, time_choice: str) -> str:
                                datetime.now(),
                                date_due)
         update_trans_history(trans_info)
-        data_string = 'Tool ID: {0}\nReturn By: {1}\nTotal Due: ${2:.2f}'.format(
+        data_string = 'Item ID: {0}\nReturn By: {1}\nTotal Due: ${2:.2f}'.format(
             item_id.upper(),
-            date_due,
+            date_due.strftime('%m/%d/%Y %H:%M'),
             amount_owed
         )
         return data_string
-    elif item == '9':
-        return 'Have a nice day!'
     else:
         return "I'm sorry, that item is currently unavailable. Please check again later."
 
@@ -120,7 +122,7 @@ def purchase(item: str) -> str:
     """
     Returns the total and item id in a string when given an item.
     """
-    if check_inventory(item):
+    if is_valid_item(item) and check_inventory(item):
         current_id = update_inventory_remove(item)
         price = get_price(item)*1.07
         current_date = datetime.today()
@@ -139,42 +141,39 @@ def purchase(item: str) -> str:
         return "I'm sorry, that item is currently unavailable. Please check again later."
 
 
-def return_item(item_id: str, damaged: bool):
+def return_item(item_id: str, damaged: bool) -> str:
     """
     Returns the total when given a item_id. Also updates inventory and trans history.
     """
     if item_id == '9':
         return 'Have a nice day!'
+    elif is_valid_item(item_id_to_item(item_id)):
+        price = get_price(item_id_to_item(item_id))
+        amount_owed = 0.0
+        late_info = is_late(item_id)
+        if isinstance(late_info, str):
+            return late_info
+        if late_info.late_bool:
+            overdue_charge = float(late_info.hours) * (price*.2)
+            if overdue_charge > price:
+                overdue_charge = price
+            amount_owed += overdue_charge
+        if damaged is False:
+            amount_owed -= .1*price
+        trans_info = TransInfo(item_id,
+                               'return',
+                               damaged,
+                               late_info.late_bool,
+                               'N/A',
+                               amount_owed,
+                               datetime.now(),
+                               'N/A')
+        update_trans_history(trans_info)
+        update_inventory_add(item_id)
+        pretty_str = 'Total: ${0:.2f}'.format(amount_owed)
+        return pretty_str
     else:
-        id_codes = {'nai': 'nailgun', 'aug': 'auger', 'gen': 'generator',
-                    'air': 'air_compressor', 'til': 'tilesaw', 'pre': 'pressure_washer'}
-        if item_id[:3] in id_codes:
-            price = get_price(item_id_to_item(item_id))
-            amount_owed = 0.0
-            late_info = is_late(item_id)
-            if isinstance(late_info, str):
-                return late_info
-            if late_info.late_bool:
-                overdue_charge = float(late_info.hours) * (price*.2)
-                if overdue_charge > price:
-                    overdue_charge = price
-                amount_owed += overdue_charge
-            if damaged is False:
-                amount_owed -= .1*price
-            trans_info = TransInfo(item_id,
-                                   'return',
-                                   damaged,
-                                   late_info.late_bool,
-                                   'N/A',
-                                   amount_owed,
-                                   datetime.now(),
-                                   'N/A')
-            update_trans_history(trans_info)
-            update_inventory_add(item_id)
-            pretty_str = 'Total: ${0:.2f}'.format(amount_owed)
-            return pretty_str
-        else:
-            return "That is an invalid ID. Please try again."
+        return "That is an invalid ID. Please try again."
 
 
 def replace_item(item_id: str) -> str:
@@ -183,7 +182,7 @@ def replace_item(item_id: str) -> str:
     """
     if item_id == '9':
         return 'Have a nice day!'
-    else:
+    elif is_valid_item(item_id_to_item(item_id)):
         int(item_id[3:])
         id_codes = {'nai': 'nailgun', 'aug': 'auger', 'gen': 'generator',
                     'air': 'air_compressor', 'til': 'tilesaw', 'pre': 'pressure_washer'}
@@ -201,8 +200,20 @@ def replace_item(item_id: str) -> str:
             update_trans_history(trans_info)
             pretty_str = 'Total: ${0:.2f}'.format(price)
             return pretty_str
-        else:
-            return "That is an invalid ID. Please try again."
+    else:
+        return "That is an invalid ID. Please try again."
+
+
+def is_valid_item(item: str) -> bool:
+    """
+    Returns whether or not an item is valid.
+    """
+    with open('inventory.p', 'rb') as fin:
+        inv = pickle.load(fin)
+    if item in inv:
+        return True
+    else:
+        return False
 
 
 def is_late(item_id: str) -> Union[LateInfo, str]:
@@ -211,10 +222,15 @@ def is_late(item_id: str) -> Union[LateInfo, str]:
     Checks trans_history.p to see if the given item_id is late or not.
     """
     late = False
+    trans_type_list = [] # type: List[TransTypeAndId]
     with open("trans_history.p", 'rb') as fin:
         history = pickle.load(fin)
     for each in reversed(history):
+        trans_type_list.append(TransTypeAndId(each['item_id'], each['trans_type']))
         if each['item_id'] == item_id and each['trans_type'] == 'rental':
+            for trans_id in trans_type_list:
+                if trans_id.id == each['item_id'] and trans_id.trans_type == 'replacement':
+                    return "I can't seem to find that item in the transaction history. Sorry!"
             if each['date_due'] < datetime.now(): # if it's late
                 hours = return_hours(datetime.now(), each['date_due'])
                 late = True
@@ -243,13 +259,16 @@ def choice_num_to_item(num: str) -> str:
     """
     Returns the correct item when given a number choice
     """
-    num_to_item_dict = {'1': 'auger',
-                        '2': 'nailgun',
-                        '3': 'generator',
-                        '4': 'pressure_washer',
-                        '5': 'air_compressor',
-                        '6': 'tilesaw'}
-    return num_to_item_dict[num]
+    if int(num) <= 6:
+        num_to_item_dict = {'1': 'auger',
+                            '2': 'nailgun',
+                            '3': 'generator',
+                            '4': 'pressure_washer',
+                            '5': 'air_compressor',
+                            '6': 'tilesaw'}
+        return num_to_item_dict[num]
+    else:
+        return 'That is not a valid choice.'
 
 
 def return_hours(now: datetime, before_time: datetime) -> float:
@@ -257,7 +276,7 @@ def return_hours(now: datetime, before_time: datetime) -> float:
     Returns the amount of hours between two datetime objects.
     """
     diff = now - before_time
-    return diff.seconds//3600 + (diff.seconds//60)%60/60
+    return float("{0:.2f}".format(diff.seconds//3600 + (diff.seconds//60)%60/60))
 
 
 def get_price(item: str) -> int:
@@ -287,8 +306,11 @@ def item_id_to_item(item_id: str) -> str:
     """
     id_codes = {'nai': 'nailgun', 'aug': 'auger', 'gen': 'generator',
                 'air': 'air_compressor', 'til': 'tilesaw', 'pre': 'pressure_washer'}
-    item = id_codes[item_id[:3]]
-    return item
+    if item_id[:3] in id_codes:
+        item = id_codes[item_id[:3]]
+        return item
+    else:
+        return 'That is an invalid ID. Please try again.'
 
 
 def view_trans_or_inventory() -> str:
