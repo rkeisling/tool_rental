@@ -8,120 +8,200 @@ core.wipe_trans_history()
 # these manipulate inventory and trans_history to test later functions
 core.rent('generator', '3')
 core.rent("air_compressor", '4')
-core.rent('tilesaw', '1')
+core.rent('pressure_washer', '2')
 
 
-def test_rent():
+# rent tests
+def test_rent_normal():
     """
-    Tests rent function in core.
+    Tests normal functionality of the rent function.
     """
     assert core.rent('nailgun', '1') == "Item ID: {0}\nReturn By: {1}\nTotal Due: ${2:.2f}".format(
         'NAI5', core.calculate_return_date('5hour').strftime('%m/%d/%Y %H:%M'), 96.30
     )
+
+
+def test_rent_not_an_item():
+    """
+    Tests the rent fucntion on an item that isn't in the inventory.
+    """
     assert core.rent('jackhammer', '1') == ("I'm sorry, that item is currently unavailable. "
                                             "Please check again later.")
+
+
+def test_rent_cancel():
+    """
+    Tests canceling out of the program through the rent function.
+    """
     assert core.rent('9', '2') == 'Have a nice day!'
 
 
-def test_purchase():
+# purchase tests
+def test_purchase_normal():
     """
-    Tests purchase function in core.
+    Tests normal functionality of purchase function.
     """
     assert core.purchase("nailgun") == 'Total: ${0:.2f}\nItem ID: {1}'.format(
         321.00, 'nai4'
     )
-    assert core.purchase('ballon') == ("I'm sorry, that item is currently unavailable. "
-                                       "Please check again later.")
+
+
+def test_purchase_not_item():
+    """
+    Tests purchase on an item that isn't (and was never) in the inventory.
+    """
+    assert core.purchase('balloon') == ("I'm sorry, that item is currently unavailable. "
+                                        "Please check again later.")
+
+
+def test_purchase_cancel():
+    """
+    Tests cancelling out of the program through the purchase function.
+    """
     assert core.purchase("9") == 'Have a nice day!'
 
 
-def test_return_item():
+# return_item tests
+def test_return_item_normal():
     """
-    Tests return_item in core.
+    Tests normal functionality of return_item.
     """
     assert core.return_item('nai5', False) == "Total: ${0:.2f}".format(-30.00)
+
+
+def test_return_item_damaged():
+    """
+    Tests returning a damaged item.
+    """
     assert core.return_item('gen3', True) == "Total: ${0:.2f}".format(0.00)
-    assert core.return_item('til1', False) == "Total: ${0:.2f}".format(-35.00)
+
+
+def test_return_item_not_rented():
+    """
+    Tests the return_item function on an item that wasn't rented (still in inventory).
+    """
+    assert core.return_item(
+        'til1', False) == "I can't seem to find that item in the transaction history. Sorry!"
+
+
+def test_return_item_cancel():
+    """
+    Tests cancelling out of the program through the return_item function.
+    """
     assert core.return_item('9', False) == 'Have a nice day!'
 
 
-def test_replace_item():
+# replace_item tests
+def test_replace_item_normal():
     """
-    Tests replace_item in core.
+    Tests normal functionality of replace_item function.
     """
     assert core.replace_item('air3') == 'Total: ${0:.2f}'.format(481.50)
+
+
+def test_replace_item_not_item():
+    """
+    Tests replace_item on an item that isn't in the inventory.
+    """
     assert core.replace_item('water gun') == 'That is an invalid ID. Please try again.'
 
 
-def test_is_late():
+# is_late tests
+def test_is_late_normal():
     """
-    Tests is_late in core.
+    Tests normal functionality of is_late.
     """
-    assert core.is_late('til1') == core.LateInfo(False, 0)
-    assert core.is_late('air3') == ("I can't seem to find that item "
+    assert core.is_late('pre2') == core.LateInfo(False, 0)
+
+
+def test_is_late_not_in_inv():
+    """
+    Tests is_late on an item that isn't in the transaction history.
+    """
+    assert core.is_late('til1') == ("I can't seem to find that item "
                                     "in the transaction history. Sorry!")
 
 
-def test_choice_num_to_item():
+# choice_num_to_item tests
+def test_choice_num_to_item_normal():
     """
-    Placeholder.
+    Tests normal functionality of choice_num_to_item.
     """
     assert core.choice_num_to_item('1') == 'auger'
+
+
+def test_choice_num_to_item_invalid():
+    """
+    Tests passing an invalid choice into choice_num_to_item.
+    """
     assert core.choice_num_to_item('7') == 'That is not a valid choice.'
 
 
-def test_get_price():
+# get_price test
+def test_get_price_normal():
     """
-    Placeholder.
+    Tests normal functionality of get_price.
     """
     assert core.get_price('nailgun') == 300
     assert core.get_price('generator') == 1500
 
 
-def test_check_inventory():
+# check_inventory test
+def test_check_inventory_normal():
     """
-    Placeholder.
+    Tests normal functionality of check_inventory.
     """
     assert core.check_inventory('tilesaw') is True
     assert core.check_inventory('nailgun') is True
 
 
-def test_item_id_to_item():
+# item_id_to_item tests
+def test_item_id_to_item_normal():
     """
-    Placeholder.
+    Tests normal functionality of item_id_to_item.
     """
     assert core.item_id_to_item('nai3') == 'nailgun'
     assert core.item_id_to_item('air1') == 'air_compressor'
+
+
+def test_item_id_to_item_invalid():
+    """
+    Tests passing an invalid ID into item_id_to_item.
+    """
     assert core.item_id_to_item('water gun') == 'That is an invalid ID. Please try again.'
 
 
-def test_update_inventory_remove():
+# update_inv_rem test
+def test_update_inv_rem_normal():
     """
-    Placeholder.
+    Tests normal functionality of update_inv_rem.
     """
-    assert core.update_inventory_remove('generator') == 'gen3'
+    assert core.update_inv_rem('generator') == 'gen3'
 
 
-def test_is_valid_item():
+# is_valid_item test
+def test_is_valid_item_normal():
     """
-    Placeholder.
+    Tests normal functionality of is_valid_item.
     """
     assert core.is_valid_item('nailgun') is True
     assert core.is_valid_item('water gun') is False
 
 
-def test_get_time_diff():
+# get_time_diff test
+def test_get_time_diff_normal():
     """
-    Placeholder.
+    Tests normal functionality of get_time_diff.
     """
     time_one = datetime(2017, 2, 2, 2, 51, 0)
     time_two = datetime(2017, 2, 9, 2, 51, 0)
     assert core.get_time_diff(time_two, time_one) == 168
 
 
-def test_return_hours():
+# return_hours test
+def test_return_hours_normal():
     """
-    Placeholder.
+    Tests normal functionality of return_hours.
     """
     time_three = datetime(2015, 3, 14, 9, 30, 0)
     time_four = datetime(2015, 3, 25, 3, 30, 0)

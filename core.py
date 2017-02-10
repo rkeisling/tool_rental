@@ -102,7 +102,7 @@ def rent(item: str, time_choice: str) -> str:
         date_due = calculate_return_date(time_dict[time_choice].time)
         price = get_price(item)
         amount_owed = ((price*.1)+(price*time_dict[time_choice].percent))*1.07
-        item_id = update_inventory_remove(item)
+        item_id = update_inv_rem(item)
         trans_info = TransInfo(item_id,
                                'rental',
                                'N/A', 'N/A',
@@ -126,7 +126,7 @@ def purchase(item: str) -> str:
     Returns the total and item id in a string when given an item.
     """
     if is_valid_item(item) and check_inventory(item):
-        current_id = update_inventory_remove(item)
+        current_id = update_inv_rem(item)
         price = get_price(item)*1.07
         current_date = datetime.today()
         trans_info = TransInfo(current_id,
@@ -172,7 +172,7 @@ def return_item(item_id: str, damaged: bool) -> str:
                                datetime.now(),
                                'N/A')
         update_trans_history(trans_info)
-        update_inventory_add(item_id)
+        update_inv_add(item_id)
         pretty_str = 'Total: ${0:.2f}'.format(amount_owed)
         return pretty_str
     else:
@@ -396,7 +396,7 @@ def update_trans_history(trans_info_tuple: TransInfo) -> None:
         pickle.dump(list_of_dict, fin)
 
 
-def update_inventory_add(item_id: str) -> None:
+def update_inv_add(item_id: str) -> None:
     """
     Updates inventory.p when something is being added back to the inventory.
     """
@@ -412,7 +412,7 @@ def update_inventory_add(item_id: str) -> None:
         pickle.dump(inv_dict, fin)
 
 
-def update_inventory_remove(item: str) -> str:
+def update_inv_rem(item: str) -> str:
     """
     Updates inventory.p when something is being removed from the inventory.
     """
