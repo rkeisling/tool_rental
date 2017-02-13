@@ -1,4 +1,6 @@
-"""These are the tests for core.py."""
+"""
+These are the tests for the testable functions of core.py.
+"""
 from datetime import datetime
 import core
 

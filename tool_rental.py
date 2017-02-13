@@ -1,4 +1,6 @@
-"""These are all the top level interactions for core."""
+"""
+These are all the user layer functions for core.
+"""
 import pickle
 from os import stat
 from typing import Any

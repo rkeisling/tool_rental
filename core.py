@@ -1,6 +1,7 @@
-'''
-Module documentation here.
-'''
+"""
+These are the logical functions of tool_rental. They are imported and used
+in tool_rental.
+"""
 import pickle
 from os import stat
 from datetime import datetime, timedelta
