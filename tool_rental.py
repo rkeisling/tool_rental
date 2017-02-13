@@ -21,18 +21,18 @@ def main() -> Any:
                              "To wipe the transaction history or "
                              "initialize the inventory, enter 3.\n"
                              "To view total revenue, enter 4.\n"
-                             "Enter the number 9 to exit at any time.\n")
+                             "Enter the number 9 to exit at any time.\n").strip()
         # throughout the file, there are checks for the input of 9; these are the same as cancel
         if greet_answer == '1':
             print(choose_trans())
         elif greet_answer == '2':
             option_answer = input(
-                "\nPlease enter 1 to view inventory and 2 to view transaction history. ")
+                "\nPlease enter 1 to view inventory and 2 to view transaction history. ").strip()
             print(view_trans_or_inventory(option_answer))
         elif greet_answer == '3':
             choice = input(('\nEnter 1 to wipe the transaction history.\n'
                             'Enter 2 to initialize the inventory.\n'
-                            'Enter 3 to do both.\n'))
+                            'Enter 3 to do both.\n')).strip()
             if choice == '1':
                 print(wipe_trans_history())
             elif choice == '2':
@@ -75,8 +75,7 @@ def choose_trans() -> Any:
             return purchase(choice_num_to_item(item_num))
     elif choice == '3':
         item_id = input("\nPlease input the ID of the returning item.\n").strip().lower()
-
-        damaged = input("\nPlease enter 1 if the item is damaged and 2 if not.\n")
+        damaged = input("\nPlease enter 1 if the item is damaged and 2 if not.\n").strip()
         damaged_dict = {'1': True, '2': False}
         return return_item(item_id, damaged_dict[damaged])
     elif choice == '4':
