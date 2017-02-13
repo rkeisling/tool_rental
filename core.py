@@ -73,7 +73,7 @@ def purchase(item: str) -> str:
     if item == '9':
         return '\nHave a nice day!'
     elif is_valid_item(item) and check_inventory(item):
-        current_id = update_inv_rem(item)
+        current_id = update_inv_rem(item).upper()
         price = get_price(item)*1.07
         current_date = datetime.today()
         trans_info = TransInfo(current_id,

@@ -44,7 +44,7 @@ def test_purchase_normal():
     Tests normal functionality of purchase function.
     """
     assert core.purchase("nailgun") == '\nTotal: ${0:.2f}\nItem ID: {1}'.format(
-        321.00, 'nai4'
+        321.00, 'NAI4'
     )
 
 
